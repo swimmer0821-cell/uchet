@@ -1,6 +1,6 @@
 /**
  * ============================================================
- *  Учёт доходов и расходов SUB PROFI — серверная часть (версия 4)
+ *  Учёт доходов и расходов SUB PROFI — серверная часть (версия 5)
  *  (Google Apps Script над Google Таблицей)
  * ============================================================
  *
@@ -154,6 +154,7 @@ function setup() {
   ops.getRange('K2:K').setNumberFormat('dd.mm.yyyy hh:mm');
   ops.setColumnWidth(1, 90);
   [4, 5, 9].forEach(c => ops.setColumnWidth(c, 200));
+  ensureCancelFormat_(ops);
   ops.getRange('C2:C').setDataValidation(
     SpreadsheetApp.newDataValidation().requireValueInList(TYPES, true).setAllowInvalid(false).build());
 
@@ -258,6 +259,8 @@ function doPost(e) {
   try {
     // Список пользователей нужен до входа, поэтому без проверки
     if (req.action === 'users') return out_({ ok: true, data: listUsers_() });
+    // Первый вход: человек без PIN сам придумывает PIN
+    if (req.action === 'setPin') return out_({ ok: true, data: setPin_(req.user, req.newPin) });
 
     const user = auth_(req.user, req.pin);
     let data;
@@ -286,12 +289,38 @@ function listUsers_() {
   return readRef_().users.map(u => ({ name: u.name, role: u.role, hasPin: !!u.pin }));
 }
 
-// Проверяем, что пользователь есть в справочнике и PIN верный
+// Проверяем, что пользователь есть в справочнике и PIN верный.
+// Без PIN войти нельзя: сначала его нужно придумать (setPin_).
 function auth_(name, pin) {
   const u = readRef_().users.find(x => x.name === String(name || '').trim());
   if (!u) throw new Error('ERR_USER');
-  if (u.pin && String(pin || '') !== u.pin) throw new Error('ERR_PIN');
+  if (!u.pin) throw new Error('ERR_NO_PIN');
+  if (String(pin || '') !== u.pin) throw new Error('ERR_PIN');
   return u;
+}
+
+// Сохранить новый PIN. Можно только если PIN ещё не задан
+// (или руководитель очистил ячейку PIN в листе «Справочники»).
+function setPin_(name, newPin) {
+  const pin = String(newPin || '');
+  if (!/^\d{4}$/.test(pin)) throw new Error('ERR_PIN_FORMAT');
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    const sh = sheet_(SHEET_REF);
+    const v = sh.getDataRange().getValues();
+    for (let r = 1; r < v.length; r++) {
+      if (String(v[r][14] || '').trim() === String(name || '').trim() && String(name || '').trim()) {
+        if (String(v[r][16] || '').trim()) throw new Error('ERR_PIN_EXISTS');
+        sh.getRange(r + 1, 17).setNumberFormat('@').setValue(pin);
+        SpreadsheetApp.flush();
+        return { ok: true };
+      }
+    }
+    throw new Error('ERR_USER');
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 
@@ -363,6 +392,22 @@ function recentNames_() {
     if (list.length < 6 && !list.some(x => x.name.toLowerCase() === o.name.toLowerCase())) list.push({ name: o.name, unit: o.unit });
   });
   return res;
+}
+
+// Отменённые записи подсвечиваются красным и зачёркиваются (условное форматирование)
+function ensureCancelFormat_(sh) {
+  const formula = '=$L2="' + STATUS_CANCELLED + '"';
+  const rules = sh.getConditionalFormatRules();
+  const has = rules.some(r => {
+    const c = r.getBooleanCondition();
+    return c && c.getCriteriaValues && String(c.getCriteriaValues()[0]) === formula;
+  });
+  if (has) return;
+  const rule = SpreadsheetApp.newConditionalFormatRule()
+    .whenFormulaSatisfied(formula)
+    .setBackground('#f4cccc').setFontColor('#990000').setStrikethrough(true)
+    .setRanges([sh.getRange('A2:P')]).build();
+  sh.setConditionalFormatRules(rules.concat([rule]));
 }
 
 // Заголовки новых колонок, если таблица создана старой версией
@@ -508,7 +553,9 @@ function cancel_(user, id) {
     if (o.status === STATUS_CANCELLED) return { id: o.id };
     if (!canEdit_(user, o)) throw new Error('ERR_ROLE');
     if (!canCancel_(user, o, Date.now())) throw new Error('ERR_CANCEL_TIME');
-    sheet_(SHEET_OPS).getRange(o.row, OPS_HEADERS.indexOf('Статус') + 1).setValue(STATUS_CANCELLED);
+    const sh = sheet_(SHEET_OPS);
+    sh.getRange(o.row, OPS_HEADERS.indexOf('Статус') + 1).setValue(STATUS_CANCELLED);
+    ensureCancelFormat_(sh);
     return { id: o.id };
   } finally {
     lock.releaseLock();

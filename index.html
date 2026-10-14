@@ -188,7 +188,7 @@ th{color:var(--muted);font-size:16px}
 const T = {
   ru: {
     app:'Учёт SUB PROFI', langBtn:'Oʻzbekcha', back:'Назад', home:'Главная',
-    whoAreYou:'Кто вы?', whoHint:'Нажмите на своё имя', enterPin:'Введите PIN', hello:'Здравствуйте, {n}',
+    whoAreYou:'Кто вы?', whoHint:'Нажмите на своё имя', enterPin:'Введите PIN', newPin:'Первый вход. Придумайте PIN из 4 цифр и запомните его', repeatPin:'Повторите PIN', pinMismatch:'PIN не совпал. Придумайте ещё раз.', hello:'Здравствуйте, {n}',
     expense:'Расход', expenseSub:'Потратили деньги', income:'Доход', incomeSub:'Деньги пришли',
     reports:'Отчёты', reportsSub:'Сколько пришло и ушло', history:'История', historySub:'Последние записи',
     logout:'Сменить пользователя',
@@ -212,7 +212,7 @@ const T = {
     period:'Период: {a} — {b}', comparedWith:'Сравнение с {a} — {b}', noData:'За этот период записей нет',
     T_Расход:'Расход', T_Доход:'Доход', T_Вложение:'Вложение', T_Перевод:'Перевод',
     ERR_NET:'Нет связи с интернетом или сервер не ответил. Проверьте интернет и нажмите «Повторить».',
-    ERR_PIN:'Неверный PIN. Попробуйте ещё раз.', ERR_USER:'Пользователь не найден. Выберите себя заново.',
+    ERR_PIN:'Неверный PIN. Попробуйте ещё раз.', ERR_NO_PIN:'Нужно придумать PIN.', ERR_PIN_EXISTS:'PIN уже задан. Введите его. Если забыли — попросите руководителя сбросить.', ERR_PIN_FORMAT:'PIN — это 4 цифры.', ERR_USER:'Пользователь не найден. Выберите себя заново.',
     ERR_ROLE:'Это может делать только руководитель.', ERR_AMOUNT:'Сумма должна быть больше нуля.',
     ERR_AMOUNT_BIG:'Слишком большая сумма. Проверьте нули.', ERR_ARTICLE:'Такой статьи нет в справочнике. Закройте и откройте приложение заново.',
     ERR_PAY:'Такого способа оплаты нет в справочнике.', ERR_DATE:'Неверная дата.', ERR_DATE_FUTURE:'Дата не может быть позже сегодняшней.',
@@ -223,7 +223,7 @@ const T = {
   },
   uz: {
     app:'SUB PROFI hisobi', langBtn:'Русский', back:'Orqaga', home:'Bosh sahifa',
-    whoAreYou:'Siz kimsiz?', whoHint:'Ismingizni bosing', enterPin:'PIN kodni kiriting', hello:'Assalomu alaykum, {n}',
+    whoAreYou:'Siz kimsiz?', whoHint:'Ismingizni bosing', enterPin:'PIN kodni kiriting', newPin:'Birinchi kirish. 4 raqamli PIN oʻylab toping va eslab qoling', repeatPin:'PINni takrorlang', pinMismatch:'PIN mos kelmadi. Qaytadan oʻylab toping.', hello:'Assalomu alaykum, {n}',
     expense:'Xarajat', expenseSub:'Pul sarflandi', income:'Daromad', incomeSub:'Pul keldi',
     reports:'Hisobotlar', reportsSub:'Qancha keldi va ketdi', history:'Tarix', historySub:'Oxirgi yozuvlar',
     logout:'Foydalanuvchini almashtirish',
@@ -247,7 +247,7 @@ const T = {
     period:'Davr: {a} — {b}', comparedWith:'Taqqoslash: {a} — {b}', noData:'Bu davrda yozuvlar yoʻq',
     T_Расход:'Xarajat', T_Доход:'Daromad', T_Вложение:'Investitsiya', T_Перевод:'Oʻtkazma',
     ERR_NET:'Internet yoʻq yoki server javob bermadi. Internetni tekshiring va «Qaytadan» ni bosing.',
-    ERR_PIN:'PIN notoʻgʻri. Qaytadan urinib koʻring.', ERR_USER:'Foydalanuvchi topilmadi. Oʻzingizni qaytadan tanlang.',
+    ERR_PIN:'PIN notoʻgʻri. Qaytadan urinib koʻring.', ERR_NO_PIN:'PIN oʻylab topish kerak.', ERR_PIN_EXISTS:'PIN allaqachon bor. Uni kiriting. Unutgan boʻlsangiz, rahbardan tiklashni soʻrang.', ERR_PIN_FORMAT:'PIN — bu 4 ta raqam.', ERR_USER:'Foydalanuvchi topilmadi. Oʻzingizni qaytadan tanlang.',
     ERR_ROLE:'Buni faqat rahbar qila oladi.', ERR_AMOUNT:'Summa noldan katta boʻlishi kerak.',
     ERR_AMOUNT_BIG:'Summa juda katta. Nollarni tekshiring.', ERR_ARTICLE:'Bunday modda maʼlumotnomada yoʻq. Ilovani yopib, qayta oching.',
     ERR_PAY:'Bunday toʻlov usuli yoʻq.', ERR_DATE:'Sana notoʻgʻri.', ERR_DATE_FUTURE:'Sana bugundan keyin boʻlishi mumkin emas.',
@@ -347,7 +347,7 @@ async function start(){
     S.user = { name: saved };
     try { await doInit(); return; }
     catch (e) {
-      if (e.code === 'ERR_PIN' || e.code === 'ERR_USER') { logout(); }
+      if (e.code === 'ERR_PIN' || e.code === 'ERR_USER' || e.code === 'ERR_NO_PIN') { logout(); }
       else return showError(e.code, start);
     }
   }
@@ -373,29 +373,61 @@ function renderLogin(users){
   $app.querySelectorAll('[data-i]').forEach(b => b.onclick = () => {
     const u = users[+b.dataset.i];
     S.user = { name: u.name };
-    if (u.hasPin) showPin(u, users); else { S.pin = ''; doInit().catch(e => showError(e.code, () => renderLogin(users), () => renderLogin(users))); }
+    if (u.hasPin) showPin(u, users); else showNewPin(u, users);
   });
 }
-function showPin(u, users){
+
+// Цифровая клавиатура для PIN (4 цифры). onDone(pin) вызывается после 4-й цифры.
+function pinPad(title, hint, warn, backFn, onDone){
   let pin = '';
   const draw = () => {
     rerender = draw;
     screen(t('app'), `
-      <h2>${esc(u.name)}</h2><p class="hint">${esc(t('enterPin'))}</p>
-      <div class="display num" aria-live="polite">${pin ? '●'.repeat(pin.length) : '&nbsp;'}</div>
+      <h2>${esc(title)}</h2><p class="hint">${esc(hint)}</p>
+      ${warn ? `<div class="warn" role="alert">${esc(warn)}</div>` : ''}
+      <div class="display num" aria-live="polite" style="text-align:center;letter-spacing:.4em">${'●'.repeat(pin.length)}${'○'.repeat(4 - pin.length)}</div>
       <div class="pad">${[1,2,3,4,5,6,7,8,9].map(n => `<button class="key" type="button" data-k="${n}">${n}</button>`).join('')}
-        <button class="key wide" type="button" data-k="del">${esc(t('erase'))}</button>
+        <span></span>
         <button class="key" type="button" data-k="0">0</button>
-        <button class="key wide" type="button" data-k="ok">OK</button></div>`, () => renderLogin(users));
+        <button class="key wide" type="button" data-k="del">${esc(t('erase'))}</button></div>`, backFn);
     $app.querySelectorAll('[data-k]').forEach(b => b.onclick = () => {
       const k = b.dataset.k;
-      if (k === 'del') pin = pin.slice(0, -1);
-      else if (k === 'ok') { if (pin) { S.pin = pin; doInit().catch(e => { pin = ''; S.pin = ''; showError(e.code, draw, draw); }); return; } }
-      else if (pin.length < 8) pin += k;
-      draw();
+      if (k === 'del') { pin = pin.slice(0, -1); draw(); return; }
+      if (pin.length >= 4) return;
+      pin += k; draw();
+      if (pin.length === 4) setTimeout(() => onDone(pin), 150);
     });
   };
   draw();
+}
+
+// Вход по существующему PIN
+function showPin(u, users, warn){
+  pinPad(u.name, t('enterPin'), warn, () => renderLogin(users), (pin) => {
+    S.pin = pin;
+    doInit().catch(e => {
+      S.pin = '';
+      if (e.code === 'ERR_PIN') showPin(u, users, t('ERR_PIN'));
+      else showError(e.code, () => showPin(u, users), () => renderLogin(users));
+    });
+  });
+}
+
+// Первый вход: придумать PIN и повторить его
+function showNewPin(u, users, warn){
+  pinPad(u.name, t('newPin'), warn, () => renderLogin(users), (first) => {
+    pinPad(u.name, t('repeatPin'), '', () => showNewPin(u, users), async (second) => {
+      if (first !== second) return showNewPin(u, users, t('pinMismatch'));
+      try {
+        await api('setPin', { newPin: first }, t('saving'));
+        S.pin = first;
+        await doInit();
+      } catch (e) {
+        if (e.code === 'ERR_PIN_EXISTS') showPin(u, users, t('ERR_PIN_EXISTS'));
+        else showError(e.code, () => showNewPin(u, users), () => renderLogin(users));
+      }
+    });
+  });
 }
 
 /* ==========================================================
