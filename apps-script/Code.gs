@@ -195,22 +195,32 @@ function setup() {
 }
 
 // Формулы листа «Отчёты». Менять руками можно только даты в C3 и C4.
+// Записывает формулу. В таблицах с русскими настройками разделитель — «;», а не «,»:
+// если формула с запятыми дала ошибку, пишем её же с точками с запятой.
+function setF_(sh, a1, formula) {
+  const r = sh.getRange(a1);
+  r.setFormula(formula);
+  SpreadsheetApp.flush();
+  if (/^#(ERROR|ОШИБКА)/i.test(String(r.getDisplayValue()))) r.setFormula(formula.replace(/,/g, ';'));
+  return r;
+}
+
 function buildReportSheet_(rep) {
   const base = (type) =>
     `SUMIFS(${SHEET_OPS}!$F:$F,${SHEET_OPS}!$C:$C,"${type}",${SHEET_OPS}!$B:$B,">="&$C$3,${SHEET_OPS}!$B:$B,"<="&$C$4,${SHEET_OPS}!$L:$L,"<>${STATUS_CANCELLED}")`;
 
   rep.getRange('A1').setValue('Отчёт считается сам. Руками можно менять только даты в C3 и C4.').setFontWeight('bold');
   rep.getRange('B3:C4').setValues([['С', ''], ['По', '']]);
-  rep.getRange('C3').setFormula('=DATE(YEAR(TODAY()),MONTH(TODAY()),1)');
-  rep.getRange('C4').setFormula('=TODAY()');
+  setF_(rep, 'C3', '=DATE(YEAR(TODAY()),MONTH(TODAY()),1)');
+  setF_(rep, 'C4', '=TODAY()');
   rep.getRange('C3:C4').setNumberFormat('dd.mm.yyyy').setBackground('#fff8d6');
 
   rep.getRange('B6:B10').setValues([['Доходы'], ['Расходы'], ['Разница'], ['Вложения и займы (не доход)'], ['Переводы между своими (не расход)']]);
-  rep.getRange('C6').setFormula('=' + base('Доход'));
-  rep.getRange('C7').setFormula('=' + base('Расход'));
-  rep.getRange('C8').setFormula('=C6-C7');
-  rep.getRange('C9').setFormula('=' + base('Вложение'));
-  rep.getRange('C10').setFormula('=' + base('Перевод'));
+  setF_(rep, 'C6', '=' + base('Доход'));
+  setF_(rep, 'C7', '=' + base('Расход'));
+  setF_(rep, 'C8', '=C6-C7');
+  setF_(rep, 'C9', '=' + base('Вложение'));
+  setF_(rep, 'C10', '=' + base('Перевод'));
   rep.getRange('C6:C10').setNumberFormat('#,##0').setFontWeight('bold');
 
   const byCat = (type, catCol, totalCell) =>
@@ -218,23 +228,23 @@ function buildReportSheet_(rep) {
 
   rep.getRange('A12').setValue('Расходы по статьям').setFontWeight('bold');
   rep.getRange('A13:C13').setValues([['Статья', 'Сумма', 'Доля']]).setFontWeight('bold');
-  rep.getRange('A14').setFormula(`=UNIQUE(FILTER(${SHEET_REF}!$B$2:$B,${SHEET_REF}!$A$2:$A="Расход"))`);
-  rep.getRange('B14').setFormula(byCat('Расход', 'A'));
-  rep.getRange('C14').setFormula('=ARRAYFORMULA(IF(A14:A60="","",IFERROR(B14:B60/$C$7,0)))');
+  setF_(rep, 'A14', `=UNIQUE(FILTER(${SHEET_REF}!$B$2:$B,${SHEET_REF}!$A$2:$A="Расход"))`);
+  setF_(rep, 'B14', byCat('Расход', 'A'));
+  setF_(rep, 'C14', '=ARRAYFORMULA(IF(A14:A60="","",IFERROR(B14:B60/$C$7,0)))');
 
   rep.getRange('E12').setValue('Доходы по статьям').setFontWeight('bold');
   rep.getRange('E13:G13').setValues([['Статья', 'Сумма', 'Доля']]).setFontWeight('bold');
-  rep.getRange('E14').setFormula(`=UNIQUE(FILTER(${SHEET_REF}!$B$2:$B,${SHEET_REF}!$A$2:$A="Доход"))`);
-  rep.getRange('F14').setFormula(byCat('Доход', 'E'));
-  rep.getRange('G14').setFormula('=ARRAYFORMULA(IF(E14:E60="","",IFERROR(F14:F60/$C$6,0)))');
+  setF_(rep, 'E14', `=UNIQUE(FILTER(${SHEET_REF}!$B$2:$B,${SHEET_REF}!$A$2:$A="Доход"))`);
+  setF_(rep, 'F14', byCat('Доход', 'E'));
+  setF_(rep, 'G14', '=ARRAYFORMULA(IF(E14:E60="","",IFERROR(F14:F60/$C$6,0)))');
 
   rep.getRange('I12').setValue('По способу оплаты').setFontWeight('bold');
   rep.getRange('I13:K13').setValues([['Способ', 'Расход', 'Доход']]).setFontWeight('bold');
-  rep.getRange('I14').setFormula(`=FILTER(${SHEET_REF}!$J$2:$J,${SHEET_REF}!$J$2:$J<>"")`);
+  setF_(rep, 'I14', `=FILTER(${SHEET_REF}!$J$2:$J,${SHEET_REF}!$J$2:$J<>"")`);
   const byPay = (type) =>
     `=ARRAYFORMULA(IF(I14:I30="","",SUMIFS(${SHEET_OPS}!$F:$F,${SHEET_OPS}!$C:$C,"${type}",${SHEET_OPS}!$G:$G,I14:I30,${SHEET_OPS}!$B:$B,">="&$C$3,${SHEET_OPS}!$B:$B,"<="&$C$4,${SHEET_OPS}!$L:$L,"<>${STATUS_CANCELLED}")))`;
-  rep.getRange('J14').setFormula(byPay('Расход'));
-  rep.getRange('K14').setFormula(byPay('Доход'));
+  setF_(rep, 'J14', byPay('Расход'));
+  setF_(rep, 'K14', byPay('Доход'));
 
   rep.getRange('B14:B60').setNumberFormat('#,##0');
   rep.getRange('F14:F60').setNumberFormat('#,##0');
