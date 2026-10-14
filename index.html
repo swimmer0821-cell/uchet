@@ -100,6 +100,10 @@ textarea{width:100%;min-height:90px;border:2px solid var(--line);border-radius:1
 .btn.inc{background:var(--inc);border-color:var(--inc)}
 .btn.neu{background:var(--neu);border-color:var(--neu)}
 .btn:disabled{background:var(--soft);color:var(--muted);border-color:var(--line);cursor:not-allowed}
+.txt{width:100%;min-height:60px;border:2px solid var(--line);border-radius:12px;padding:10px 14px;font-size:20px;background:var(--bg)}
+.txt.req{border-color:var(--exp)}
+.qtyrow{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.qtyrow .txt{width:9em;flex:none}
 .need{color:var(--exp);font-weight:600;margin:0}
 
 /* Подтверждение */
@@ -193,7 +197,7 @@ const T = {
     change:'изменить',
     amount:'Сумма', sum:'сум', erase:'Стереть', date:'Дата', today:'Сегодня', yesterday:'Вчера', otherDate:'Другая дата',
     payExp:'Как оплатили', payInc:'Как получили', party:'Контрагент', optional:'необязательно', none:'Не указывать',
-    comment:'Комментарий', commentHint:'Можно сказать голосом: нажмите микрофон на клавиатуре.',
+    nameExp:'Что купили', nameInc:'Наименование', nameHint:'Например: малина замороженная', qty:'Количество', needName:'Напишите, что купили', perUnit:'за 1 {u}', comment:'Комментарий', commentHint:'Можно сказать голосом: нажмите микрофон на клавиатуре.',
     next:'Далее', needAmount:'Введите сумму', check:'Проверьте перед записью', checkT:'Проверка', save:'Записать', fix:'Исправить',
     warnBig:'Сумма в {n} раз больше обычной для «{a}» (обычно около {t} сум). Проверьте, нет ли лишнего нуля.',
     saved:'Записано', savedDup:'Эта запись уже была сохранена раньше, повтора нет.', oneMore:'Ещё запись',
@@ -212,7 +216,7 @@ const T = {
     ERR_ROLE:'Это может делать только руководитель.', ERR_AMOUNT:'Сумма должна быть больше нуля.',
     ERR_AMOUNT_BIG:'Слишком большая сумма. Проверьте нули.', ERR_ARTICLE:'Такой статьи нет в справочнике. Закройте и откройте приложение заново.',
     ERR_PAY:'Такого способа оплаты нет в справочнике.', ERR_DATE:'Неверная дата.', ERR_DATE_FUTURE:'Дата не может быть позже сегодняшней.',
-    ERR_CANCEL_TIME:'Прошло больше {m} минут — отменить нельзя. Запись можно изменить или попросить руководителя её отменить.', ERR_CANCELLED:'Запись уже отменена, её нельзя изменить.',
+    ERR_CANCEL_TIME:'Прошло больше {m} минут — отменить нельзя. Запись можно изменить или попросить руководителя её отменить.', ERR_CANCELLED:'Запись уже отменена, её нельзя изменить.', ERR_NAME:'Напишите, что купили.', ERR_QTY:'Проверьте количество: число больше нуля и единица.',
     ERR_NOT_FOUND:'Запись не найдена.', ERR_DATA:'Ошибка данных. Закройте и откройте приложение заново.',
     ERR_SETUP:'Таблица не настроена. Запустите «Учёт → Настроить таблицу».',
     ERR_CONFIG:'В файле index.html не указан адрес Apps Script (API_URL).'
@@ -228,7 +232,7 @@ const T = {
     change:'oʻzgartirish',
     amount:'Summa', sum:'soʻm', erase:'Oʻchirish', date:'Sana', today:'Bugun', yesterday:'Kecha', otherDate:'Boshqa sana',
     payExp:'Qanday toʻlandi', payInc:'Qanday olindi', party:'Kontragent', optional:'ixtiyoriy', none:'Koʻrsatmaslik',
-    comment:'Izoh', commentHint:'Ovoz bilan aytish mumkin: klaviaturadagi mikrofonni bosing.',
+    nameExp:'Nima sotib olindi', nameInc:'Nomi', nameHint:'Masalan: muzlatilgan malina', qty:'Miqdori', needName:'Nima sotib olinganini yozing', perUnit:'1 {u} uchun', comment:'Izoh', commentHint:'Ovoz bilan aytish mumkin: klaviaturadagi mikrofonni bosing.',
     next:'Keyingi', needAmount:'Summani kiriting', check:'Yozishdan oldin tekshiring', checkT:'Tekshirish', save:'Yozish', fix:'Tuzatish',
     warnBig:'Summa «{a}» uchun odatdagidan {n} baravar koʻp (odatda taxminan {t} soʻm). Ortiqcha nol yoʻqligini tekshiring.',
     saved:'Yozildi', savedDup:'Bu yozuv avval saqlangan, takror yoʻq.', oneMore:'Yana yozuv',
@@ -247,7 +251,7 @@ const T = {
     ERR_ROLE:'Buni faqat rahbar qila oladi.', ERR_AMOUNT:'Summa noldan katta boʻlishi kerak.',
     ERR_AMOUNT_BIG:'Summa juda katta. Nollarni tekshiring.', ERR_ARTICLE:'Bunday modda maʼlumotnomada yoʻq. Ilovani yopib, qayta oching.',
     ERR_PAY:'Bunday toʻlov usuli yoʻq.', ERR_DATE:'Sana notoʻgʻri.', ERR_DATE_FUTURE:'Sana bugundan keyin boʻlishi mumkin emas.',
-    ERR_CANCEL_TIME:'{m} daqiqadan koʻp vaqt oʻtdi — bekor qilib boʻlmaydi. Yozuvni tahrirlash yoki rahbardan bekor qilishni soʻrash mumkin.', ERR_CANCELLED:'Yozuv bekor qilingan, uni tahrirlab boʻlmaydi.',
+    ERR_CANCEL_TIME:'{m} daqiqadan koʻp vaqt oʻtdi — bekor qilib boʻlmaydi. Yozuvni tahrirlash yoki rahbardan bekor qilishni soʻrash mumkin.', ERR_CANCELLED:'Yozuv bekor qilingan, uni tahrirlab boʻlmaydi.', ERR_NAME:'Nima sotib olinganini yozing.', ERR_QTY:'Miqdorni tekshiring: noldan katta son va oʻlchov birligi.',
     ERR_NOT_FOUND:'Yozuv topilmadi.', ERR_DATA:'Maʼlumot xatosi. Ilovani yopib, qayta oching.',
     ERR_SETUP:'Jadval sozlanmagan. «Учёт → Настроить таблицу» ni ishga tushiring.',
     ERR_CONFIG:'index.html faylida Apps Script manzili (API_URL) koʻrsatilmagan.'
@@ -313,7 +317,7 @@ function screen(title, html, backFn){
   b.hidden = !backFn;
   b.textContent = t('back');
   $app.innerHTML = html;
-  window.scrollTo(0, 0);
+  if (S.keepScroll != null) { window.scrollTo(0, S.keepScroll); S.keepScroll = null; } else window.scrollTo(0, 0);
   const f = $app.querySelector('[data-autofocus]'); if (f) f.focus();
 }
 document.getElementById('backBtn').onclick = () => { if (S.back) S.back(); };
@@ -424,7 +428,7 @@ function showHome(){
    ========================================================== */
 function startDraft(mode){
   S.draft = { mode, id: newId(), type: null, cat: null, sub: null, digits: '', date: S.ref.today,
-    pay: S.ref.pays[0] ? S.ref.pays[0].ru : '', party: '', comment: '', otherDate: false };
+    pay: S.ref.pays[0] ? S.ref.pays[0].ru : '', party: '', comment: '', otherDate: false, name: '', qty: '', unit: 'кг' };
   mode === 'exp' ? showQuick() : showIncomeCats();
 }
 
@@ -432,6 +436,7 @@ function startDraft(mode){
 function startEdit(o){
   S.draft = { mode: o.type === 'Расход' ? 'exp' : 'inc', editId: o.id, oldSum: o.sum, type: o.type, cat: o.cat, sub: o.sub,
     digits: String(Math.round(o.sum)), date: o.date, pay: o.pay, party: o.party || '', comment: o.comment || '', otherDate: false,
+    name: o.name || '', qty: o.qty === '' || o.qty == null ? '' : String(o.qty), unit: o.unit || 'кг',
     pickBack: showHistory };
   showAmount();
 }
@@ -510,10 +515,23 @@ function showAmount(){
   const yest = addDays(S.ref.today, -1);
   const isToday = d.date === S.ref.today, isYest = d.date === yest;
   const showParty = d.type !== 'Расход';
+  const names = (S.ref.names && S.ref.names[d.type + '|' + d.cat + '|' + d.sub]) || [];
   screen(d.editId ? t('editT') : t('T_' + d.type), `
     <div class="path">
       <span class="pill c-${cls} bg-${cls}">${esc(catName(a))} → ${esc(subName(a))}</span>
       <button class="chip" type="button" id="aChange">${esc(t('change'))}</button>
+    </div>
+    <div class="field">
+      <label class="label" for="nameInp">${esc(d.type === 'Расход' ? t('nameExp') : t('nameInc'))}${d.type === 'Расход' ? '' : ` <em>(${esc(t('optional'))})</em>`}</label>
+      <input class="txt ${needName() && !d.name.trim() ? 'req' : ''}" id="nameInp" type="text" maxlength="100" autocomplete="off" placeholder="${esc(t('nameHint'))}" value="${esc(d.name)}">
+      ${names.length ? `<div class="chips">${names.map((n, i) => `<button class="chip" type="button" data-nm="${i}">${esc(n.name)}</button>`).join('')}</div>` : ''}
+    </div>
+    <div class="field">
+      <span class="label">${esc(t('qty'))} <em>(${esc(t('optional'))})</em></span>
+      <div class="qtyrow">
+        <input class="txt num" id="qtyInp" type="text" inputmode="decimal" maxlength="12" autocomplete="off" value="${esc(d.qty)}" aria-label="${esc(t('qty'))}">
+        <div class="chips">${S.ref.units.map(u => `<button class="chip" type="button" data-unit="${esc(u.ru)}" aria-pressed="${d.unit === u.ru}">${esc(S.lang === 'uz' ? u.uz : u.ru)}</button>`).join('')}</div>
+      </div>
     </div>
     <div class="amount-layout">
       <div class="field">
@@ -552,16 +570,26 @@ function showAmount(){
         </div>
       </div>
     </div>
-    <p class="need" id="need">${esc(t('needAmount'))}</p>
+    <p class="need" id="need"></p>
     <div class="actions"><button class="btn ${cls}" type="button" id="aNext">${esc(t('next'))}</button></div>`, d.pickBack);
 
   const disp = document.getElementById('disp'), next = document.getElementById('aNext'), need = document.getElementById('need');
+  const nameInp = document.getElementById('nameInp'), qtyInp = document.getElementById('qtyInp');
   const upd = () => {
-    const ok = Number(d.digits) > 0;
+    const okSum = Number(d.digits) > 0, okName = !needName() || d.name.trim() !== '';
     disp.innerHTML = (d.digits ? money(d.digits) : '0') + `<span class="cur">${esc(t('sum'))}</span>`;
-    disp.classList.toggle('req', !ok);
-    next.disabled = !ok; need.hidden = ok;
+    disp.classList.toggle('req', !okSum);
+    nameInp.classList.toggle('req', !okName);
+    next.disabled = !(okSum && okName);
+    need.textContent = !okName ? t('needName') : !okSum ? t('needAmount') : '';
+    need.hidden = okSum && okName;
   };
+  nameInp.oninput = () => { d.name = nameInp.value; upd(); };
+  qtyInp.oninput = () => { qtyInp.value = qtyInp.value.replace(/[^0-9.,]/g, ''); d.qty = qtyInp.value; };
+  $app.querySelectorAll('[data-nm]').forEach(b => b.onclick = () => {
+    const n = names[+b.dataset.nm]; d.name = n.name; if (n.unit) d.unit = n.unit; keepInputs(); d.name = n.name; showAmount();
+  });
+  $app.querySelectorAll('[data-unit]').forEach(b => b.onclick = () => { keepInputs(); d.unit = b.dataset.unit; redraw(); });
   upd();
   $app.querySelectorAll('[data-k]').forEach(b => b.onclick = () => {
     const k = b.dataset.k;
@@ -573,16 +601,33 @@ function showAmount(){
     const v = b.dataset.date;
     d.otherDate = v === 'other';
     if (v === 'today') d.date = S.ref.today; else if (v === 'yest') d.date = yest;
-    keepComment(); showAmount();
+    keepInputs(); redraw();
   });
   document.getElementById('dateInp').onchange = (e) => { const v = e.target.value; if (v && v <= S.ref.today) d.date = v; else e.target.value = d.date; };
-  $app.querySelectorAll('[data-pay]').forEach(b => b.onclick = () => { d.pay = b.dataset.pay; keepComment(); showAmount(); });
-  $app.querySelectorAll('[data-party]').forEach(b => b.onclick = () => { d.party = b.dataset.party; keepComment(); showAmount(); });
+  $app.querySelectorAll('[data-pay]').forEach(b => b.onclick = () => { d.pay = b.dataset.pay; keepInputs(); redraw(); });
+  $app.querySelectorAll('[data-party]').forEach(b => b.onclick = () => { d.party = b.dataset.party; keepInputs(); redraw(); });
   document.getElementById('cmt').oninput = (e) => { d.comment = e.target.value; };
-  document.getElementById('aChange').onclick = () => { keepComment(); changeArticle(); };
-  next.onclick = () => { keepComment(); if (Number(d.digits) > 0) showConfirm(); };
+  document.getElementById('aChange').onclick = () => { keepInputs(); changeArticle(); };
+  next.onclick = () => { keepInputs(); if (Number(d.digits) > 0 && (!needName() || d.name.trim())) showConfirm(); };
 }
-function keepComment(){ const c = document.getElementById('cmt'); if (c && S.draft) S.draft.comment = c.value; }
+// Новое название сразу появляется в подсказках, без перезапуска приложения
+function rememberName(op){
+  if (!op.name) return;
+  const k = op.type + '|' + op.cat + '|' + op.sub;
+  S.ref.names = S.ref.names || {};
+  const list = (S.ref.names[k] || []).filter(x => x.name.toLowerCase() !== op.name.toLowerCase());
+  list.unshift({ name: op.name, unit: op.unit || '' });
+  S.ref.names[k] = list.slice(0, 6);
+}
+function redraw(){ S.keepScroll = window.scrollY; showAmount(); }
+function keepInputs(){
+  if (!S.draft) return;
+  const c = document.getElementById('cmt'), n = document.getElementById('nameInp'), q = document.getElementById('qtyInp');
+  if (c) S.draft.comment = c.value; if (n) S.draft.name = n.value; if (q) S.draft.qty = q.value;
+}
+function needName(){ return S.draft && S.draft.type === 'Расход'; }
+function qtyNum(q){ const n = Number(String(q || '').replace(',', '.')); return isFinite(n) && n > 0 ? n : 0; }
+function unitLabel(ru){ const u = S.ref.units && S.ref.units.find(x => x.ru === ru); return u ? (S.lang === 'uz' ? u.uz : u.ru) : ru; }
 function currentArticle(){ const d = S.draft; return S.ref.articles.find(a => a.type === d.type && a.cat === d.cat && a.sub === d.sub) || { cat: d.cat, catUz: d.cat, sub: d.sub, subUz: d.sub }; }
 
 /* ==========================================================
@@ -600,6 +645,8 @@ function showConfirm(){
       <div class="sum-big num c-${cls}">${money(amount)} ${esc(t('sum'))}</div>
       ${d.editId && d.oldSum !== amount ? `<p class="hint num">${esc(t('wasSum'))}: ${money(d.oldSum)} ${esc(t('sum'))}</p>` : ''}
       <dl class="rows">
+        ${d.name.trim() ? `<dt>${esc(d.type === 'Расход' ? t('nameExp') : t('nameInc'))}</dt><dd>${esc(d.name.trim())}</dd>` : ''}
+        ${qtyNum(d.qty) ? `<dt>${esc(t('qty'))}</dt><dd class="num">${esc(String(qtyNum(d.qty)).replace('.', ','))} ${esc(unitLabel(d.unit))} · ${money(amount / qtyNum(d.qty))} ${esc(t('sum'))} ${esc(t('perUnit', { u: unitLabel(d.unit) }))}</dd>` : ''}
         <dt>${esc(t('date'))}</dt><dd>${esc(fmtDate(d.date))}</dd>
         <dt>${esc(catName(a))}</dt><dd>${esc(subName(a))}</dd>
         <dt>${esc(d.type === 'Расход' ? t('payExp') : t('payInc'))}</dt><dd>${esc(payLabel(d.pay))}</dd>
@@ -619,9 +666,10 @@ function showConfirm(){
     S.busy = true; btn.disabled = true;
     try {
       const op = { id: d.id, type: d.type, cat: d.cat, sub: d.sub, amount, date: d.date,
-        pay: d.pay, party: d.party, comment: d.comment.trim() };
-      if (d.editId) { await api('edit', { id: d.editId, op }, t('saving')); showEdited(); }
-      else { const r = await api('add', { op }, t('saving')); showSaved(r.duplicate); }
+        pay: d.pay, party: d.party, comment: d.comment.trim(), name: d.name.trim(),
+        qty: qtyNum(d.qty) ? String(qtyNum(d.qty)) : '', unit: qtyNum(d.qty) ? d.unit : '' };
+      if (d.editId) { await api('edit', { id: d.editId, op }, t('saving')); rememberName(op); showEdited(); }
+      else { const r = await api('add', { op }, t('saving')); rememberName(op); showSaved(r.duplicate); }
     } catch (e) {
       // тот же ID: если первая попытка всё же дошла, сервер не создаст дубль
       showError(e.code, () => showConfirm(), showConfirm);
@@ -686,7 +734,7 @@ function renderHistory(){
         const c = typeClass(o.type);
         const left = Math.max(1, Math.ceil((mins - (S.hist.now - o.created)) / 60000));
         return `<div class="item ${c} ${o.cancelled ? 'off' : ''}">
-          <div><b>${esc(catLabel(o.type, o.cat))}</b> → ${esc(subLabel(o))}</div>
+          <div>${o.name ? `<b>${esc(o.name)}</b>${o.qty ? ` · <span class="num">${esc(String(o.qty).replace('.', ','))} ${esc(unitLabel(o.unit))}</span>` : ''}<br><span class="hint">${esc(catLabel(o.type, o.cat))} → ${esc(subLabel(o))}</span>` : `<b>${esc(catLabel(o.type, o.cat))}</b> → ${esc(subLabel(o))}`}</div>
           <div class="s num c-${c}">${o.type === 'Расход' ? '−' : ''}${money(o.sum)}</div>
           <div class="m">${esc(fmtDate(o.date))} · ${esc(payLabel(o.pay))}${o.party ? ' · ' + esc(o.party) : ''} · ${esc(t('who'))}: ${esc(o.who)}${o.cancelled ? ' · <b>' + esc(t('cancelled')) + '</b>' : ''}</div>
           ${o.comment ? `<div class="m">${esc(o.comment)}</div>` : ''}
