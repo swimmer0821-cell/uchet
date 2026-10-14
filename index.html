@@ -198,8 +198,8 @@ const T = {
     warnBig:'Сумма в {n} раз больше обычной для «{a}» (обычно около {t} сум). Проверьте, нет ли лишнего нуля.',
     saved:'Записано', savedDup:'Эта запись уже была сохранена раньше, повтора нет.', oneMore:'Ещё запись',
     error:'Ошибка', retry:'Повторить', loading:'Загрузка…', saving:'Записываю…',
-    cancelRec:'Отменить запись', cancelQ:'Отменить эту запись?', yesCancel:'Да, отменить', no:'Нет', cancelled:'Отменена',
-    cancelLeft:'отменить можно ещё {m} мин', all:'Все', empty:'Записей пока нет', who:'Внёс',
+    cancelRec:'Отменить', editRec:'Изменить', editT:'Изменение', checkEdit:'Проверьте изменения', saveEdit:'Сохранить изменения', edited:'Изменено', editedMark:'изменено: {w}', toHistory:'К истории', wasSum:'Было',  cancelQ:'Отменить эту запись?', yesCancel:'Да, отменить', no:'Нет', cancelled:'Отменена',
+    cancelLeft:'изменить можно ещё {m} мин', all:'Все', empty:'Записей пока нет', who:'Внёс',
     pToday:'Сегодня', pWeek:'Неделя', pMonth:'Месяц', pCustom:'Свой период', from:'С', to:'По', show:'Показать',
     tTotal:'Итог', tCats:'По статьям', tDyn:'Динамика', tPay:'Наличные и перечисление',
     incT:'Доходы', expT:'Расходы', diffT:'Разница', invT:'Вложения и займы', trT:'Переводы между своими',
@@ -212,7 +212,7 @@ const T = {
     ERR_ROLE:'Это может делать только руководитель.', ERR_AMOUNT:'Сумма должна быть больше нуля.',
     ERR_AMOUNT_BIG:'Слишком большая сумма. Проверьте нули.', ERR_ARTICLE:'Такой статьи нет в справочнике. Закройте и откройте приложение заново.',
     ERR_PAY:'Такого способа оплаты нет в справочнике.', ERR_DATE:'Неверная дата.', ERR_DATE_FUTURE:'Дата не может быть позже сегодняшней.',
-    ERR_CANCEL_TIME:'Прошло больше {m} минут — отменить нельзя. Попросите руководителя исправить в таблице.',
+    ERR_CANCEL_TIME:'Прошло больше {m} минут — изменить или отменить нельзя. Попросите руководителя.',
     ERR_NOT_FOUND:'Запись не найдена.', ERR_DATA:'Ошибка данных. Закройте и откройте приложение заново.',
     ERR_SETUP:'Таблица не настроена. Запустите «Учёт → Настроить таблицу».',
     ERR_CONFIG:'В файле index.html не указан адрес Apps Script (API_URL).'
@@ -233,8 +233,8 @@ const T = {
     warnBig:'Summa «{a}» uchun odatdagidan {n} baravar koʻp (odatda taxminan {t} soʻm). Ortiqcha nol yoʻqligini tekshiring.',
     saved:'Yozildi', savedDup:'Bu yozuv avval saqlangan, takror yoʻq.', oneMore:'Yana yozuv',
     error:'Xato', retry:'Qaytadan', loading:'Yuklanmoqda…', saving:'Yozilmoqda…',
-    cancelRec:'Yozuvni bekor qilish', cancelQ:'Bu yozuvni bekor qilasizmi?', yesCancel:'Ha, bekor qilish', no:'Yoʻq', cancelled:'Bekor qilingan',
-    cancelLeft:'yana {m} daqiqa bekor qilish mumkin', all:'Hammasi', empty:'Hozircha yozuvlar yoʻq', who:'Kiritdi',
+    cancelRec:'Bekor qilish', editRec:'Tahrirlash', editT:'Tahrir', checkEdit:'Oʻzgarishlarni tekshiring', saveEdit:'Oʻzgarishlarni saqlash', edited:'Oʻzgartirildi', editedMark:'oʻzgartirildi: {w}', toHistory:'Tarixga', wasSum:'Oldin',  cancelQ:'Bu yozuvni bekor qilasizmi?', yesCancel:'Ha, bekor qilish', no:'Yoʻq', cancelled:'Bekor qilingan',
+    cancelLeft:'yana {m} daqiqa oʻzgartirish mumkin', all:'Hammasi', empty:'Hozircha yozuvlar yoʻq', who:'Kiritdi',
     pToday:'Bugun', pWeek:'Hafta', pMonth:'Oy', pCustom:'Oʻz davri', from:'Dan', to:'Gacha', show:'Koʻrsatish',
     tTotal:'Jami', tCats:'Moddalar boʻyicha', tDyn:'Oʻzgarish', tPay:'Naqd va bank orqali',
     incT:'Daromadlar', expT:'Xarajatlar', diffT:'Farq', invT:'Investitsiya va qarzlar', trT:'Oʻz hisoblar oʻrtasida',
@@ -247,7 +247,7 @@ const T = {
     ERR_ROLE:'Buni faqat rahbar qila oladi.', ERR_AMOUNT:'Summa noldan katta boʻlishi kerak.',
     ERR_AMOUNT_BIG:'Summa juda katta. Nollarni tekshiring.', ERR_ARTICLE:'Bunday modda maʼlumotnomada yoʻq. Ilovani yopib, qayta oching.',
     ERR_PAY:'Bunday toʻlov usuli yoʻq.', ERR_DATE:'Sana notoʻgʻri.', ERR_DATE_FUTURE:'Sana bugundan keyin boʻlishi mumkin emas.',
-    ERR_CANCEL_TIME:'{m} daqiqadan koʻp vaqt oʻtdi — bekor qilib boʻlmaydi. Rahbardan jadvalda tuzatishni soʻrang.',
+    ERR_CANCEL_TIME:'{m} daqiqadan koʻp vaqt oʻtdi — oʻzgartirib yoki bekor qilib boʻlmaydi. Rahbardan soʻrang.',
     ERR_NOT_FOUND:'Yozuv topilmadi.', ERR_DATA:'Maʼlumot xatosi. Ilovani yopib, qayta oching.',
     ERR_SETUP:'Jadval sozlanmagan. «Учёт → Настроить таблицу» ni ishga tushiring.',
     ERR_CONFIG:'index.html faylida Apps Script manzili (API_URL) koʻrsatilmagan.'
@@ -428,6 +428,21 @@ function startDraft(mode){
   mode === 'exp' ? showQuick() : showIncomeCats();
 }
 
+// Изменение существующей записи: открываем тот же экран суммы с заполненными полями
+function startEdit(o){
+  S.draft = { mode: o.type === 'Расход' ? 'exp' : 'inc', editId: o.id, oldSum: o.sum, type: o.type, cat: o.cat, sub: o.sub,
+    digits: String(Math.round(o.sum)), date: o.date, pay: o.pay, party: o.party || '', comment: o.comment || '', otherDate: false,
+    pickBack: showHistory };
+  showAmount();
+}
+// Выбор другой статьи при изменении
+function changeArticle(){
+  const d = S.draft;
+  if (!d.editId) return d.pickBack();
+  if (d.type === 'Расход' && !isBoss()) return showCats('Расход', showAmount);
+  return d.type === 'Расход' ? showCats('Расход', showAmount) : showIncomeCats(showAmount);
+}
+
 // Сотрудник сразу видит частые траты
 function showQuick(){
   rerender = showQuick;
@@ -455,16 +470,17 @@ function showCats(type, backFn){
 }
 
 // Руководитель: доходы, вложения, переводы — разными группами
-function showIncomeCats(){
-  rerender = showIncomeCats;
+function showIncomeCats(backFn){
+  backFn = backFn || showHome;
+  rerender = () => showIncomeCats(backFn);
   const groups = [['Доход', 'groupInc', 't-inc'], ['Вложение', 'groupInv', 't-neu'], ['Перевод', 'groupTr', 't-neu']];
   const all = [];
   const html = groups.map(([type, title, cls]) => {
     const list = cats(type); if (!list.length) return '';
     return `<h3>${esc(t(title))}</h3><div class="tiles ${cls}">${list.map(a => { all.push(a); return `<button class="tile" type="button" data-i="${all.length - 1}">${esc(catName(a))}</button>`; }).join('')}</div>`;
   }).join('');
-  screen(t('income'), `<h2>${esc(t('fromWhere'))}</h2>${html}`, showHome);
-  $app.querySelectorAll('[data-i]').forEach(b => b.onclick = () => { const a = all[+b.dataset.i]; showSubs(a.type, a.cat, showIncomeCats); });
+  screen(t('income'), `<h2>${esc(t('fromWhere'))}</h2>${html}`, backFn);
+  $app.querySelectorAll('[data-i]').forEach(b => b.onclick = () => { const a = all[+b.dataset.i]; showSubs(a.type, a.cat, () => showIncomeCats(backFn)); });
 }
 
 function showSubs(type, cat, backFn){
@@ -480,7 +496,8 @@ function showSubs(type, cat, backFn){
 
 function pick(a, backFn){
   const d = S.draft;
-  d.type = a.type; d.cat = a.cat; d.sub = a.sub; d.pickBack = backFn;
+  d.type = a.type; d.cat = a.cat; d.sub = a.sub;
+  if (!d.editId) d.pickBack = backFn;
   showAmount();
 }
 
@@ -493,7 +510,7 @@ function showAmount(){
   const yest = addDays(S.ref.today, -1);
   const isToday = d.date === S.ref.today, isYest = d.date === yest;
   const showParty = d.type !== 'Расход';
-  screen(t('T_' + d.type), `
+  screen(d.editId ? t('editT') : t('T_' + d.type), `
     <div class="path">
       <span class="pill c-${cls} bg-${cls}">${esc(catName(a))} → ${esc(subName(a))}</span>
       <button class="chip" type="button" id="aChange">${esc(t('change'))}</button>
@@ -562,7 +579,7 @@ function showAmount(){
   $app.querySelectorAll('[data-pay]').forEach(b => b.onclick = () => { d.pay = b.dataset.pay; keepComment(); showAmount(); });
   $app.querySelectorAll('[data-party]').forEach(b => b.onclick = () => { d.party = b.dataset.party; keepComment(); showAmount(); });
   document.getElementById('cmt').oninput = (e) => { d.comment = e.target.value; };
-  document.getElementById('aChange').onclick = () => { keepComment(); d.pickBack(); };
+  document.getElementById('aChange').onclick = () => { keepComment(); changeArticle(); };
   next.onclick = () => { keepComment(); if (Number(d.digits) > 0) showConfirm(); };
 }
 function keepComment(){ const c = document.getElementById('cmt'); if (c && S.draft) S.draft.comment = c.value; }
@@ -576,11 +593,12 @@ function showConfirm(){
   const d = S.draft, cls = typeClass(d.type), a = currentArticle(), amount = Number(d.digits);
   const typical = S.ref.typical[d.type + '|' + d.cat + '|' + d.sub];
   const warn = typical && amount >= typical * CONFIG.WARN_FACTOR;
-  screen(t('checkT'), `
-    <h2>${esc(t('check'))}</h2>
+  screen(d.editId ? t('editT') : t('checkT'), `
+    <h2>${esc(d.editId ? t('checkEdit') : t('check'))}</h2>
     <div class="card bg-${cls}" style="border-color:var(--${cls})">
       <span class="pill c-${cls}" style="align-self:flex-start">${esc(t('T_' + d.type))}</span>
       <div class="sum-big num c-${cls}">${money(amount)} ${esc(t('sum'))}</div>
+      ${d.editId && d.oldSum !== amount ? `<p class="hint num">${esc(t('wasSum'))}: ${money(d.oldSum)} ${esc(t('sum'))}</p>` : ''}
       <dl class="rows">
         <dt>${esc(t('date'))}</dt><dd>${esc(fmtDate(d.date))}</dd>
         <dt>${esc(catName(a))}</dt><dd>${esc(subName(a))}</dd>
@@ -591,7 +609,7 @@ function showConfirm(){
     </div>
     ${warn ? `<div class="warn" role="alert">${esc(t('warnBig', { n: Math.floor(amount / typical), a: subName(a), t: money(typical) }))}</div>` : ''}
     <div class="actions">
-      <button class="btn ${cls}" type="button" id="cSave">${esc(t('save'))}</button>
+      <button class="btn ${cls}" type="button" id="cSave">${esc(d.editId ? t('saveEdit') : t('save'))}</button>
       <button class="btn ghost" type="button" id="cFix">${esc(t('fix'))}</button>
     </div>`, showAmount);
   document.getElementById('cFix').onclick = showAmount;
@@ -600,14 +618,29 @@ function showConfirm(){
     if (S.busy) return;               // повторное нажатие не отправит второй раз
     S.busy = true; btn.disabled = true;
     try {
-      const r = await api('add', { op: { id: d.id, type: d.type, cat: d.cat, sub: d.sub, amount, date: d.date,
-        pay: d.pay, party: d.party, comment: d.comment.trim() } }, t('saving'));
-      showSaved(r.duplicate);
+      const op = { id: d.id, type: d.type, cat: d.cat, sub: d.sub, amount, date: d.date,
+        pay: d.pay, party: d.party, comment: d.comment.trim() };
+      if (d.editId) { await api('edit', { id: d.editId, op }, t('saving')); showEdited(); }
+      else { const r = await api('add', { op }, t('saving')); showSaved(r.duplicate); }
     } catch (e) {
       // тот же ID: если первая попытка всё же дошла, сервер не создаст дубль
       showError(e.code, () => showConfirm(), showConfirm);
     } finally { S.busy = false; }
   };
+}
+
+function showEdited(){
+  const d = S.draft;
+  rerender = showEdited;
+  screen(t('edited'), `
+    <div class="result ok" role="status"><b>${esc(t('edited'))}</b>
+      <span class="num" style="font-size:26px;font-weight:700">${money(d.digits)} ${esc(t('sum'))}</span></div>
+    <div class="actions">
+      <button class="btn" type="button" id="eHist">${esc(t('toHistory'))}</button>
+      <button class="btn ghost" type="button" id="eHome">${esc(t('home'))}</button>
+    </div>`);
+  document.getElementById('eHist').onclick = showHistory;
+  document.getElementById('eHome').onclick = showHome;
 }
 
 function showSaved(dup){
@@ -657,16 +690,19 @@ function renderHistory(){
           <div class="s num c-${c}">${o.type === 'Расход' ? '−' : ''}${money(o.sum)}</div>
           <div class="m">${esc(fmtDate(o.date))} · ${esc(payLabel(o.pay))}${o.party ? ' · ' + esc(o.party) : ''} · ${esc(t('who'))}: ${esc(o.who)}${o.cancelled ? ' · <b>' + esc(t('cancelled')) + '</b>' : ''}</div>
           ${o.comment ? `<div class="m">${esc(o.comment)}</div>` : ''}
+          ${o.edited ? `<div class="m">${esc(t('editedMark', { w: o.edited }))}</div>` : ''}
           ${o.canCancel ? (S.confirmCancel === o.id
             ? `<div class="a"><b style="align-self:center">${esc(t('cancelQ'))}</b>
                 <button class="chip" type="button" data-yes="${esc(o.id)}" style="border-color:var(--exp);color:var(--exp)">${esc(t('yesCancel'))}</button>
                 <button class="chip" type="button" data-no="1">${esc(t('no'))}</button></div>`
-            : `<div class="a"><button class="chip" type="button" data-cancel="${esc(o.id)}">${esc(t('cancelRec'))}</button>
-                <span class="hint" style="align-self:center">${esc(t('cancelLeft', { m: left }))}</span></div>`) : ''}
+            : `<div class="a"><button class="chip" type="button" data-edit="${esc(o.id)}">${esc(t('editRec'))}</button>
+                <button class="chip" type="button" data-cancel="${esc(o.id)}">${esc(t('cancelRec'))}</button>
+                ${isBoss() ? '' : `<span class="hint" style="align-self:center">${esc(t('cancelLeft', { m: left }))}</span>`}</div>`) : ''}
         </div>`; }).join('') : `<div class="empty">${esc(t('empty'))}</div>`}
     </div>`, showHome);
   $app.querySelectorAll('[data-ft]').forEach(b => b.onclick = () => { S.histFilter = { type: b.dataset.ft || undefined }; showHistory(); });
   $app.querySelectorAll('[data-fc]').forEach(b => b.onclick = () => { S.histFilter = { type: f.type, cat: b.dataset.fc || undefined }; showHistory(); });
+  $app.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => { const o = items.find(x => x.id === b.dataset.edit); if (o) startEdit(o); });
   $app.querySelectorAll('[data-cancel]').forEach(b => b.onclick = () => { S.confirmCancel = b.dataset.cancel; renderHistory(); });
   $app.querySelectorAll('[data-no]').forEach(b => b.onclick = () => { S.confirmCancel = null; renderHistory(); });
   $app.querySelectorAll('[data-yes]').forEach(b => b.onclick = async () => {
