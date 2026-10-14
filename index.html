@@ -1,0 +1,770 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14313a">
+<title>Учёт SUB PROFI</title>
+<script>
+/* ==========================================================
+   НАСТРОЙКИ — меняйте только этот блок
+   ========================================================== */
+const CONFIG = {
+  // Адрес веб-приложения Apps Script (заканчивается на /exec). Вставьте свой:
+  API_URL: 'ВСТАВЬТЕ_СЮДА_АДРЕС_APPS_SCRIPT',
+  // Сколько секунд ждать ответа сервера
+  TIMEOUT_SEC: 30,
+  // Во сколько раз сумма должна превышать обычную, чтобы показать предупреждение
+  WARN_FACTOR: 5,
+  // Язык при первом запуске: 'ru' или 'uz'
+  DEFAULT_LANG: 'ru'
+};
+</script>
+<style>
+:root{
+  --bg:#ffffff; --ink:#0f1a1e; --muted:#4a5a60; --line:#b9c4c8; --soft:#eef2f3;
+  --bar:#14313a; --bar-ink:#ffffff;
+  --exp:#a4161a; --exp-bg:#fde9e8; --inc:#156b34; --inc-bg:#e2f4e8;
+  --neu:#2c4d73; --neu-bg:#e6edf6; --warn:#7a4b00; --warn-bg:#fff1cc;
+  --focus:#f2b705;
+  --r:14px;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font:400 19px/1.4 Roboto,"Segoe UI",system-ui,-apple-system,sans-serif;-webkit-tap-highlight-color:transparent}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:4px solid var(--focus);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+
+/* Шапка */
+.top{position:sticky;top:0;z-index:5;background:var(--bar);color:var(--bar-ink);display:flex;align-items:center;gap:12px;padding:10px 16px;padding-top:calc(10px + env(safe-area-inset-top,0px));min-height:68px}
+.top h1{font-size:20px;margin:0;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tbtn{background:transparent;border:2px solid rgba(255,255,255,.6);color:var(--bar-ink);border-radius:10px;min-height:48px;min-width:60px;padding:6px 14px;font-weight:600;font-size:17px}
+main{padding:16px;padding-bottom:calc(32px + env(safe-area-inset-bottom,0px));max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+h2{font-size:24px;margin:4px 0 0}
+h3{font-size:19px;margin:8px 0 0;color:var(--muted)}
+.hint{color:var(--muted);font-size:17px;margin:0}
+
+/* Главный экран */
+.home{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.big{border:3px solid var(--line);border-radius:var(--r);background:var(--soft);min-height:150px;padding:18px;text-align:left;display:flex;flex-direction:column;justify-content:flex-end;gap:4px}
+.big b{font-size:30px}
+.big span{font-size:18px;color:var(--muted)}
+.big.exp{background:var(--exp-bg);border-color:var(--exp);color:var(--exp)}
+.big.inc{background:var(--inc-bg);border-color:var(--inc);color:var(--inc)}
+
+/* Плитки */
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
+.tile{border:2px solid var(--line);background:var(--bg);border-radius:var(--r);min-height:84px;padding:12px 14px;text-align:left;font-size:19px;font-weight:600;display:flex;flex-direction:column;justify-content:center;gap:2px}
+.tile small{font-weight:400;font-size:15px;color:var(--muted)}
+.t-exp .tile{border-color:#e3a9a6}
+.t-exp .tile:active{background:var(--exp-bg)}
+.t-inc .tile{border-color:#9fcfae}
+.t-inc .tile:active{background:var(--inc-bg)}
+.tile.more{background:var(--soft);border-style:dashed}
+.t-neu .tile{border-color:#a9bdd6}
+
+/* Плашка выбранного */
+.path{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.pill{border-radius:999px;padding:8px 16px;font-weight:600;font-size:17px;border:2px solid currentColor;background:var(--bg)}
+.c-exp{color:var(--exp)} .c-inc{color:var(--inc)} .c-neu{color:var(--neu)}
+.bg-exp{background:var(--exp-bg)} .bg-inc{background:var(--inc-bg)} .bg-neu{background:var(--neu-bg)}
+
+/* Экран суммы */
+.amount-layout{display:grid;gap:18px}
+@media (min-width:820px){.amount-layout{grid-template-columns:1fr 1fr;align-items:start}}
+.field{display:flex;flex-direction:column;gap:8px}
+.label{font-weight:700;font-size:18px}
+.label em{font-style:normal;font-weight:400;color:var(--muted)}
+.display{border:3px solid var(--line);border-radius:var(--r);padding:12px 16px;font-size:40px;font-weight:700;text-align:right;min-height:76px;background:var(--soft);overflow-wrap:anywhere}
+.display.req{border-color:var(--exp)}
+.display .cur{font-size:22px;font-weight:400;color:var(--muted);margin-left:8px}
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.key{min-height:68px;border:2px solid var(--line);border-radius:12px;background:var(--bg);font-size:30px;font-weight:600}
+.key:active{background:var(--soft)}
+.key.wide{font-size:19px}
+.chips{display:flex;flex-wrap:wrap;gap:12px}
+.chip{min-height:60px;min-width:60px;padding:10px 18px;border:2px solid var(--line);border-radius:12px;background:var(--bg);font-size:18px;font-weight:600}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+input[type=date]{min-height:60px;border:2px solid var(--line);border-radius:12px;padding:8px 12px;font-size:20px;background:var(--bg)}
+textarea{width:100%;min-height:90px;border:2px solid var(--line);border-radius:12px;padding:12px;font-size:19px;resize:vertical}
+
+/* Основные кнопки */
+.actions{display:flex;flex-wrap:wrap;gap:12px}
+.btn{min-height:64px;padding:12px 24px;border-radius:var(--r);border:3px solid var(--ink);background:var(--ink);color:var(--bg);font-size:21px;font-weight:700;flex:1 1 200px}
+.btn.ghost{background:var(--bg);color:var(--ink)}
+.btn.exp{background:var(--exp);border-color:var(--exp)}
+.btn.inc{background:var(--inc);border-color:var(--inc)}
+.btn.neu{background:var(--neu);border-color:var(--neu)}
+.btn:disabled{background:var(--soft);color:var(--muted);border-color:var(--line);cursor:not-allowed}
+.need{color:var(--exp);font-weight:600;margin:0}
+
+/* Подтверждение */
+.card{border:3px solid var(--line);border-radius:var(--r);padding:18px;display:flex;flex-direction:column;gap:12px}
+.sum-big{font-size:46px;font-weight:800;line-height:1.1;overflow-wrap:anywhere}
+.rows{display:flex;flex-direction:column;gap:2px;margin:0}
+.rows dt{color:var(--muted);font-size:16px;margin-top:8px} .rows dd{margin:0;font-weight:700;font-size:22px;overflow-wrap:anywhere}
+.warn{background:var(--warn-bg);color:var(--warn);border:2px solid var(--warn);border-radius:12px;padding:14px;font-weight:600}
+
+/* Результат */
+.result{border-radius:var(--r);padding:28px 20px;text-align:center;display:flex;flex-direction:column;gap:8px;align-items:center}
+.result b{font-size:36px}
+.result.ok{background:var(--inc-bg);color:var(--inc);border:3px solid var(--inc)}
+.result.bad{background:var(--exp-bg);color:var(--exp);border:3px solid var(--exp)}
+
+/* История */
+.list{display:flex;flex-direction:column;gap:12px}
+.item{border:2px solid var(--line);border-left-width:10px;border-radius:12px;padding:12px 14px;display:grid;grid-template-columns:1fr auto;gap:4px 12px}
+.item.exp{border-left-color:var(--exp)} .item.inc{border-left-color:var(--inc)} .item.neu{border-left-color:var(--neu)}
+.item.off{opacity:.55}
+.item .s{font-size:22px;font-weight:800;text-align:right;white-space:nowrap}
+.item .m{color:var(--muted);font-size:16px;grid-column:1/-1}
+.item .a{grid-column:1/-1;display:flex;gap:10px;flex-wrap:wrap}
+.item .a .chip{min-height:52px}
+.scroll-x{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px}
+.scroll-x .chip{flex:none}
+
+/* Отчёты */
+.tabs{display:flex;flex-wrap:wrap;gap:4px 8px;border-bottom:3px solid var(--line)}
+.tab{flex:none;min-height:56px;padding:8px 16px;border:0;background:transparent;font-weight:700;font-size:18px;border-bottom:5px solid transparent;margin-bottom:-3px}
+.tab[aria-selected="true"]{border-bottom-color:var(--ink)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+.kpi{border-radius:var(--r);padding:16px;border:3px solid var(--line)}
+.kpi span{display:block;font-size:18px;font-weight:600}
+.kpi b{display:block;font-size:34px;font-weight:800;overflow-wrap:anywhere}
+.kpi small{display:block;color:var(--muted);font-size:15px}
+.kpi.exp{border-color:var(--exp);color:var(--exp);background:var(--exp-bg)}
+.kpi.inc{border-color:var(--inc);color:var(--inc);background:var(--inc-bg)}
+.side{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+.side div{border:2px dashed var(--line);border-radius:12px;padding:12px}
+.side b{font-size:22px}
+.bars{display:flex;flex-direction:column;gap:12px}
+.bar-row{display:grid;grid-template-columns:1fr auto;gap:4px 12px}
+.bar-row .n{font-weight:600;min-width:0;overflow-wrap:anywhere}
+.bar-row .v{font-weight:700;white-space:nowrap}
+.bar-track{grid-column:1/-1;height:18px;background:var(--soft);border-radius:9px;overflow:hidden}
+.bar-fill{height:100%;border-radius:9px}
+.tbl-wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:18px}
+th,td{padding:10px 8px;border-bottom:2px solid var(--soft);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left;white-space:normal}
+th{color:var(--muted);font-size:16px}
+.up{color:var(--exp);font-weight:700} .down{color:var(--inc);font-weight:700} /* up = плохо, down = хорошо */
+.dyn{display:flex;flex-direction:column;gap:10px}
+.dyn>div{border:2px solid var(--soft);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:4px}
+.dyn .n{font-weight:700}
+.dyn .p{color:var(--muted);font-size:17px}
+.dates{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+
+/* Загрузка */
+.loader{position:fixed;inset:0;background:rgba(15,26,30,.45);display:flex;align-items:center;justify-content:center;z-index:20}
+.loader div{background:var(--bg);border-radius:var(--r);padding:24px 32px;display:flex;align-items:center;gap:16px;font-size:21px;font-weight:600}
+.spin{width:36px;height:36px;border:5px solid var(--soft);border-top-color:var(--ink);border-radius:50%;animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation-duration:3s}}
+.empty{border:2px dashed var(--line);border-radius:var(--r);padding:24px;text-align:center;color:var(--muted)}
+</style>
+</head>
+<body>
+<header class="top">
+  <button class="tbtn" id="backBtn" type="button" hidden></button>
+  <h1 id="title">Учёт SUB PROFI</h1>
+  <button class="tbtn" id="langBtn" type="button"></button>
+</header>
+<main id="app" aria-live="polite"></main>
+<div class="loader" id="loader" hidden><div><span class="spin" aria-hidden="true"></span><span id="loaderText">Загрузка…</span></div></div>
+
+<script>
+/* ==========================================================
+   ТЕКСТЫ НА ДВУХ ЯЗЫКАХ
+   ========================================================== */
+const T = {
+  ru: {
+    app:'Учёт SUB PROFI', langBtn:'Oʻzbekcha', back:'Назад', home:'Главная',
+    whoAreYou:'Кто вы?', whoHint:'Нажмите на своё имя', enterPin:'Введите PIN', hello:'Здравствуйте, {n}',
+    expense:'Расход', expenseSub:'Потратили деньги', income:'Доход', incomeSub:'Деньги пришли',
+    reports:'Отчёты', reportsSub:'Сколько пришло и ушло', history:'История', historySub:'Последние записи',
+    logout:'Сменить пользователя',
+    whatPaid:'На что потратили?', fromWhere:'Что пришло?', clarify:'Уточните', other:'Другое', otherSub:'Все статьи',
+    groupInc:'Доходы', groupInv:'Вложения и займы — не доход', groupTr:'Перевод между своими — не расход',
+    change:'изменить',
+    amount:'Сумма', sum:'сум', erase:'Стереть', date:'Дата', today:'Сегодня', yesterday:'Вчера', otherDate:'Другая дата',
+    payExp:'Как оплатили', payInc:'Как получили', party:'Контрагент', optional:'необязательно', none:'Не указывать',
+    comment:'Комментарий', commentHint:'Можно сказать голосом: нажмите микрофон на клавиатуре.',
+    next:'Далее', needAmount:'Введите сумму', check:'Проверьте перед записью', checkT:'Проверка', save:'Записать', fix:'Исправить',
+    warnBig:'Сумма в {n} раз больше обычной для «{a}» (обычно около {t} сум). Проверьте, нет ли лишнего нуля.',
+    saved:'Записано', savedDup:'Эта запись уже была сохранена раньше, повтора нет.', oneMore:'Ещё запись',
+    error:'Ошибка', retry:'Повторить', loading:'Загрузка…', saving:'Записываю…',
+    cancelRec:'Отменить запись', cancelQ:'Отменить эту запись?', yesCancel:'Да, отменить', no:'Нет', cancelled:'Отменена',
+    cancelLeft:'отменить можно ещё {m} мин', all:'Все', empty:'Записей пока нет', who:'Внёс',
+    pToday:'Сегодня', pWeek:'Неделя', pMonth:'Месяц', pCustom:'Свой период', from:'С', to:'По', show:'Показать',
+    tTotal:'Итог', tCats:'По статьям', tDyn:'Динамика', tPay:'Наличные и перечисление',
+    incT:'Доходы', expT:'Расходы', diffT:'Разница', invT:'Вложения и займы', trT:'Переводы между своими',
+    notCounted:'не входят в доходы и расходы', ops:'Записей за период: {n}',
+    prev:'Прошлый период', nowCol:'Сейчас', beforeCol:'Было', chCol:'Изменение', grew:'выросло', fell:'упало', same:'без изменений', newCat:'новое',
+    period:'Период: {a} — {b}', comparedWith:'Сравнение с {a} — {b}', noData:'За этот период записей нет',
+    T_Расход:'Расход', T_Доход:'Доход', T_Вложение:'Вложение', T_Перевод:'Перевод',
+    ERR_NET:'Нет связи с интернетом или сервер не ответил. Проверьте интернет и нажмите «Повторить».',
+    ERR_PIN:'Неверный PIN. Попробуйте ещё раз.', ERR_USER:'Пользователь не найден. Выберите себя заново.',
+    ERR_ROLE:'Это может делать только руководитель.', ERR_AMOUNT:'Сумма должна быть больше нуля.',
+    ERR_AMOUNT_BIG:'Слишком большая сумма. Проверьте нули.', ERR_ARTICLE:'Такой статьи нет в справочнике. Закройте и откройте приложение заново.',
+    ERR_PAY:'Такого способа оплаты нет в справочнике.', ERR_DATE:'Неверная дата.', ERR_DATE_FUTURE:'Дата не может быть позже сегодняшней.',
+    ERR_CANCEL_TIME:'Прошло больше {m} минут — отменить нельзя. Попросите руководителя исправить в таблице.',
+    ERR_NOT_FOUND:'Запись не найдена.', ERR_DATA:'Ошибка данных. Закройте и откройте приложение заново.',
+    ERR_SETUP:'Таблица не настроена. Запустите «Учёт → Настроить таблицу».',
+    ERR_CONFIG:'В файле index.html не указан адрес Apps Script (API_URL).'
+  },
+  uz: {
+    app:'SUB PROFI hisobi', langBtn:'Русский', back:'Orqaga', home:'Bosh sahifa',
+    whoAreYou:'Siz kimsiz?', whoHint:'Ismingizni bosing', enterPin:'PIN kodni kiriting', hello:'Assalomu alaykum, {n}',
+    expense:'Xarajat', expenseSub:'Pul sarflandi', income:'Daromad', incomeSub:'Pul keldi',
+    reports:'Hisobotlar', reportsSub:'Qancha keldi va ketdi', history:'Tarix', historySub:'Oxirgi yozuvlar',
+    logout:'Foydalanuvchini almashtirish',
+    whatPaid:'Nimaga sarfladingiz?', fromWhere:'Nima keldi?', clarify:'Aniqlang', other:'Boshqa', otherSub:'Barcha moddalar',
+    groupInc:'Daromadlar', groupInv:'Investitsiya va qarzlar — daromad emas', groupTr:'Oʻz hisoblar oʻrtasida — xarajat emas',
+    change:'oʻzgartirish',
+    amount:'Summa', sum:'soʻm', erase:'Oʻchirish', date:'Sana', today:'Bugun', yesterday:'Kecha', otherDate:'Boshqa sana',
+    payExp:'Qanday toʻlandi', payInc:'Qanday olindi', party:'Kontragent', optional:'ixtiyoriy', none:'Koʻrsatmaslik',
+    comment:'Izoh', commentHint:'Ovoz bilan aytish mumkin: klaviaturadagi mikrofonni bosing.',
+    next:'Keyingi', needAmount:'Summani kiriting', check:'Yozishdan oldin tekshiring', checkT:'Tekshirish', save:'Yozish', fix:'Tuzatish',
+    warnBig:'Summa «{a}» uchun odatdagidan {n} baravar koʻp (odatda taxminan {t} soʻm). Ortiqcha nol yoʻqligini tekshiring.',
+    saved:'Yozildi', savedDup:'Bu yozuv avval saqlangan, takror yoʻq.', oneMore:'Yana yozuv',
+    error:'Xato', retry:'Qaytadan', loading:'Yuklanmoqda…', saving:'Yozilmoqda…',
+    cancelRec:'Yozuvni bekor qilish', cancelQ:'Bu yozuvni bekor qilasizmi?', yesCancel:'Ha, bekor qilish', no:'Yoʻq', cancelled:'Bekor qilingan',
+    cancelLeft:'yana {m} daqiqa bekor qilish mumkin', all:'Hammasi', empty:'Hozircha yozuvlar yoʻq', who:'Kiritdi',
+    pToday:'Bugun', pWeek:'Hafta', pMonth:'Oy', pCustom:'Oʻz davri', from:'Dan', to:'Gacha', show:'Koʻrsatish',
+    tTotal:'Jami', tCats:'Moddalar boʻyicha', tDyn:'Oʻzgarish', tPay:'Naqd va bank orqali',
+    incT:'Daromadlar', expT:'Xarajatlar', diffT:'Farq', invT:'Investitsiya va qarzlar', trT:'Oʻz hisoblar oʻrtasida',
+    notCounted:'daromad va xarajatga kirmaydi', ops:'Davrdagi yozuvlar: {n}',
+    prev:'Oldingi davr', nowCol:'Hozir', beforeCol:'Oldin', chCol:'Oʻzgarish', grew:'oshdi', fell:'kamaydi', same:'oʻzgarmadi', newCat:'yangi',
+    period:'Davr: {a} — {b}', comparedWith:'Taqqoslash: {a} — {b}', noData:'Bu davrda yozuvlar yoʻq',
+    T_Расход:'Xarajat', T_Доход:'Daromad', T_Вложение:'Investitsiya', T_Перевод:'Oʻtkazma',
+    ERR_NET:'Internet yoʻq yoki server javob bermadi. Internetni tekshiring va «Qaytadan» ni bosing.',
+    ERR_PIN:'PIN notoʻgʻri. Qaytadan urinib koʻring.', ERR_USER:'Foydalanuvchi topilmadi. Oʻzingizni qaytadan tanlang.',
+    ERR_ROLE:'Buni faqat rahbar qila oladi.', ERR_AMOUNT:'Summa noldan katta boʻlishi kerak.',
+    ERR_AMOUNT_BIG:'Summa juda katta. Nollarni tekshiring.', ERR_ARTICLE:'Bunday modda maʼlumotnomada yoʻq. Ilovani yopib, qayta oching.',
+    ERR_PAY:'Bunday toʻlov usuli yoʻq.', ERR_DATE:'Sana notoʻgʻri.', ERR_DATE_FUTURE:'Sana bugundan keyin boʻlishi mumkin emas.',
+    ERR_CANCEL_TIME:'{m} daqiqadan koʻp vaqt oʻtdi — bekor qilib boʻlmaydi. Rahbardan jadvalda tuzatishni soʻrang.',
+    ERR_NOT_FOUND:'Yozuv topilmadi.', ERR_DATA:'Maʼlumot xatosi. Ilovani yopib, qayta oching.',
+    ERR_SETUP:'Jadval sozlanmagan. «Учёт → Настроить таблицу» ni ishga tushiring.',
+    ERR_CONFIG:'index.html faylida Apps Script manzili (API_URL) koʻrsatilmagan.'
+  }
+};
+
+/* ==========================================================
+   СОСТОЯНИЕ И ПОМОЩНИКИ
+   ========================================================== */
+const S = { lang: load('lang') || CONFIG.DEFAULT_LANG, user: null, pin: load('pin') || '', ref: null,
+  draft: null, back: null, histFilter: {}, rep: { period: 'month', tab: 'total', from: '', to: '', data: null }, busy: false };
+
+function load(k){ try { return localStorage.getItem('uchet_' + k); } catch(e){ return null; } }
+function store(k, v){ try { v == null ? localStorage.removeItem('uchet_' + k) : localStorage.setItem('uchet_' + k, v); } catch(e){} }
+function t(k, vars){ let s = (T[S.lang] && T[S.lang][k]) || T.ru[k] || k; if (vars) for (const x in vars) s = s.split('{' + x + '}').join(vars[x]); return s; }
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function money(n){ const v = Math.round(Number(n) || 0); return (v < 0 ? '−' : '') + String(Math.abs(v)).replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
+function fmtDate(s){ if (!s) return ''; const [y,m,d] = s.split('-'); return d + '.' + m + '.' + y; }
+function addDays(s, n){ const d = new Date(Date.UTC(+s.slice(0,4), +s.slice(5,7)-1, +s.slice(8,10) + n)); return d.toISOString().slice(0,10); }
+function newId(){ if (window.crypto && crypto.randomUUID) return crypto.randomUUID(); return 'id-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 12); }
+function typeClass(type){ return type === 'Расход' ? 'exp' : type === 'Доход' ? 'inc' : 'neu'; }
+function isBoss(){ return S.user && S.user.role === 'boss'; }
+function catName(a){ return S.lang === 'uz' ? a.catUz : a.cat; }
+function subName(a){ return S.lang === 'uz' ? a.subUz : a.sub; }
+function catLabel(type, cat){ const a = S.ref && S.ref.articles.find(x => x.type === type && x.cat === cat); return a ? catName(a) : cat; }
+function payLabel(ru){ const p = S.ref && S.ref.pays.find(x => x.ru === ru); return p ? (S.lang === 'uz' ? p.uz : p.ru) : ru; }
+const $app = document.getElementById('app');
+
+/* ==========================================================
+   ОБМЕН С СЕРВЕРОМ (Apps Script)
+   ========================================================== */
+async function api(action, extra, loadingText){
+  if (!CONFIG.API_URL || CONFIG.API_URL.indexOf('ВСТАВЬТЕ') === 0) throw { code: 'ERR_CONFIG' };
+  showLoader(true, loadingText);
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), CONFIG.TIMEOUT_SEC * 1000);
+  try {
+    const body = Object.assign({ action, user: S.user ? S.user.name : load('user'), pin: S.pin }, extra || {});
+    const res = await fetch(CONFIG.API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(body), signal: ctrl.signal, redirect: 'follow' });
+    if (!res.ok) throw { code: 'ERR_NET' };
+    const j = await res.json();
+    if (!j.ok) throw { code: j.error || 'ERR_DATA' };
+    return j.data;
+  } catch (e) {
+    if (e && e.code) throw e;
+    throw { code: 'ERR_NET' };
+  } finally {
+    clearTimeout(timer);
+    showLoader(false);
+  }
+}
+function showLoader(on, text){ document.getElementById('loader').hidden = !on; document.getElementById('loaderText').textContent = text || t('loading'); }
+function errText(code){ return t(code, { m: (S.ref && S.ref.cancelMinutes) || 10 }); }
+
+/* ==========================================================
+   ОБЩАЯ РАЗМЕТКА ЭКРАНА
+   ========================================================== */
+function screen(title, html, backFn){
+  document.getElementById('title').textContent = title;
+  const b = document.getElementById('backBtn');
+  S.back = backFn || null;
+  b.hidden = !backFn;
+  b.textContent = t('back');
+  $app.innerHTML = html;
+  window.scrollTo(0, 0);
+  const f = $app.querySelector('[data-autofocus]'); if (f) f.focus();
+}
+document.getElementById('backBtn').onclick = () => { if (S.back) S.back(); };
+document.getElementById('langBtn').onclick = () => { S.lang = S.lang === 'ru' ? 'uz' : 'ru'; store('lang', S.lang); applyLang(); rerender(); };
+function applyLang(){ document.documentElement.lang = S.lang; document.getElementById('langBtn').textContent = t('langBtn'); }
+let rerender = () => {};
+
+function showError(code, retryFn, backFn){
+  rerender = () => showError(code, retryFn, backFn);
+  screen(t('error'), `
+    <div class="result bad" role="alert"><b>${esc(t('error'))}</b><p>${esc(errText(code))}</p></div>
+    <div class="actions">
+      ${retryFn ? `<button class="btn" id="retry" type="button">${esc(t('retry'))}</button>` : ''}
+      <button class="btn ghost" id="eback" type="button">${esc(backFn ? t('back') : t('home'))}</button>
+    </div>`, backFn || null);
+  if (retryFn) document.getElementById('retry').onclick = retryFn;
+  document.getElementById('eback').onclick = backFn || showHome;
+}
+
+/* ==========================================================
+   ВХОД
+   ========================================================== */
+async function start(){
+  applyLang();
+  const saved = load('user');
+  if (saved) {
+    S.user = { name: saved };
+    try { await doInit(); return; }
+    catch (e) {
+      if (e.code === 'ERR_PIN' || e.code === 'ERR_USER') { logout(); }
+      else return showError(e.code, start);
+    }
+  }
+  showLogin();
+}
+async function doInit(){
+  const d = await api('init');
+  S.ref = d; S.user = d.user; store('user', d.user.name); store('pin', S.pin || null);
+  showHome();
+}
+function logout(){ S.user = null; S.pin = ''; S.ref = null; store('user', null); store('pin', null); }
+
+async function showLogin(){
+  let users;
+  try { users = await api('users'); } catch (e) { return showError(e.code, showLogin); }
+  rerender = () => renderLogin(users);
+  renderLogin(users);
+}
+function renderLogin(users){
+  screen(t('app'), `
+    <h2>${esc(t('whoAreYou'))}</h2><p class="hint">${esc(t('whoHint'))}</p>
+    <div class="tiles">${users.map((u, i) => `<button class="tile" type="button" data-i="${i}">${esc(u.name)}</button>`).join('')}</div>`);
+  $app.querySelectorAll('[data-i]').forEach(b => b.onclick = () => {
+    const u = users[+b.dataset.i];
+    S.user = { name: u.name };
+    if (u.hasPin) showPin(u, users); else { S.pin = ''; doInit().catch(e => showError(e.code, () => renderLogin(users), () => renderLogin(users))); }
+  });
+}
+function showPin(u, users){
+  let pin = '';
+  const draw = () => {
+    rerender = draw;
+    screen(t('app'), `
+      <h2>${esc(u.name)}</h2><p class="hint">${esc(t('enterPin'))}</p>
+      <div class="display num" aria-live="polite">${pin ? '●'.repeat(pin.length) : '&nbsp;'}</div>
+      <div class="pad">${[1,2,3,4,5,6,7,8,9].map(n => `<button class="key" type="button" data-k="${n}">${n}</button>`).join('')}
+        <button class="key wide" type="button" data-k="del">${esc(t('erase'))}</button>
+        <button class="key" type="button" data-k="0">0</button>
+        <button class="key wide" type="button" data-k="ok">OK</button></div>`, () => renderLogin(users));
+    $app.querySelectorAll('[data-k]').forEach(b => b.onclick = () => {
+      const k = b.dataset.k;
+      if (k === 'del') pin = pin.slice(0, -1);
+      else if (k === 'ok') { if (pin) { S.pin = pin; doInit().catch(e => { pin = ''; S.pin = ''; showError(e.code, draw, draw); }); return; } }
+      else if (pin.length < 8) pin += k;
+      draw();
+    });
+  };
+  draw();
+}
+
+/* ==========================================================
+   ГЛАВНЫЙ ЭКРАН
+   ========================================================== */
+function showHome(){
+  rerender = showHome;
+  S.draft = null;
+  const boss = isBoss();
+  screen(t('app'), `
+    <p class="hint">${esc(t('hello', { n: S.user.name }))}</p>
+    <div class="home">
+      <button class="big exp" type="button" id="hExp"><b>${esc(t('expense'))}</b><span>${esc(t('expenseSub'))}</span></button>
+      ${boss ? `<button class="big inc" type="button" id="hInc"><b>${esc(t('income'))}</b><span>${esc(t('incomeSub'))}</span></button>` : ''}
+      ${boss ? `<button class="big" type="button" id="hRep"><b>${esc(t('reports'))}</b><span>${esc(t('reportsSub'))}</span></button>` : ''}
+      <button class="big" type="button" id="hHis"><b>${esc(t('history'))}</b><span>${esc(t('historySub'))}</span></button>
+    </div>
+    <div class="actions"><button class="btn ghost" type="button" id="hOut">${esc(t('logout'))}</button></div>`);
+  document.getElementById('hExp').onclick = () => startDraft('exp');
+  if (boss) {
+    document.getElementById('hInc').onclick = () => startDraft('inc');
+    document.getElementById('hRep').onclick = () => showReports();
+  }
+  document.getElementById('hHis').onclick = () => { S.histFilter = {}; showHistory(); };
+  document.getElementById('hOut').onclick = () => { logout(); showLogin(); };
+}
+
+/* ==========================================================
+   ДОБАВЛЕНИЕ ОПЕРАЦИИ: выбор статьи
+   ========================================================== */
+function startDraft(mode){
+  S.draft = { mode, id: newId(), type: null, cat: null, sub: null, digits: '', date: S.ref.today,
+    pay: S.ref.pays[0] ? S.ref.pays[0].ru : '', party: '', comment: '', otherDate: false };
+  mode === 'exp' ? showQuick() : showIncomeCats();
+}
+
+// Сотрудник сразу видит частые траты
+function showQuick(){
+  rerender = showQuick;
+  const quick = S.ref.articles.filter(a => a.type === 'Расход' && a.quick > 0).sort((a, b) => a.quick - b.quick);
+  if (!quick.length) return showCats('Расход', showHome);
+  screen(t('expense'), `
+    <h2>${esc(t('whatPaid'))}</h2>
+    <div class="tiles t-exp">
+      ${quick.map((a, i) => `<button class="tile" type="button" data-i="${i}">${esc(S.lang === 'uz' ? a.tileUz : a.tile)}<small>${esc(catName(a))}</small></button>`).join('')}
+      <button class="tile more" type="button" id="qMore">${esc(t('other'))}<small>${esc(t('otherSub'))}</small></button>
+    </div>`, showHome);
+  $app.querySelectorAll('[data-i]').forEach(b => b.onclick = () => { const a = quick[+b.dataset.i]; pick(a, showQuick); });
+  document.getElementById('qMore').onclick = () => showCats('Расход', showQuick);
+}
+
+function cats(type){ const seen = {}; return S.ref.articles.filter(a => a.type === type && !seen[a.cat] && (seen[a.cat] = true)); }
+
+function showCats(type, backFn){
+  rerender = () => showCats(type, backFn);
+  const list = cats(type);
+  screen(t('expense'), `
+    <h2>${esc(t('whatPaid'))}</h2>
+    <div class="tiles t-exp">${list.map((a, i) => `<button class="tile" type="button" data-i="${i}">${esc(catName(a))}</button>`).join('')}</div>`, backFn);
+  $app.querySelectorAll('[data-i]').forEach(b => b.onclick = () => showSubs(type, list[+b.dataset.i].cat, () => showCats(type, backFn)));
+}
+
+// Руководитель: доходы, вложения, переводы — разными группами
+function showIncomeCats(){
+  rerender = showIncomeCats;
+  const groups = [['Доход', 'groupInc', 't-inc'], ['Вложение', 'groupInv', 't-neu'], ['Перевод', 'groupTr', 't-neu']];
+  const all = [];
+  const html = groups.map(([type, title, cls]) => {
+    const list = cats(type); if (!list.length) return '';
+    return `<h3>${esc(t(title))}</h3><div class="tiles ${cls}">${list.map(a => { all.push(a); return `<button class="tile" type="button" data-i="${all.length - 1}">${esc(catName(a))}</button>`; }).join('')}</div>`;
+  }).join('');
+  screen(t('income'), `<h2>${esc(t('fromWhere'))}</h2>${html}`, showHome);
+  $app.querySelectorAll('[data-i]').forEach(b => b.onclick = () => { const a = all[+b.dataset.i]; showSubs(a.type, a.cat, showIncomeCats); });
+}
+
+function showSubs(type, cat, backFn){
+  const subs = S.ref.articles.filter(a => a.type === type && a.cat === cat);
+  if (subs.length === 1) return pick(subs[0], backFn);
+  rerender = () => showSubs(type, cat, backFn);
+  const cls = 't-' + typeClass(type);
+  screen(catName(subs[0]), `
+    <h2>${esc(t('clarify'))}</h2>
+    <div class="tiles ${cls}">${subs.map((a, i) => `<button class="tile" type="button" data-i="${i}">${esc(subName(a))}</button>`).join('')}</div>`, backFn);
+  $app.querySelectorAll('[data-i]').forEach(b => b.onclick = () => pick(subs[+b.dataset.i], () => showSubs(type, cat, backFn)));
+}
+
+function pick(a, backFn){
+  const d = S.draft;
+  d.type = a.type; d.cat = a.cat; d.sub = a.sub; d.pickBack = backFn;
+  showAmount();
+}
+
+/* ==========================================================
+   ДОБАВЛЕНИЕ ОПЕРАЦИИ: сумма, дата, оплата, комментарий
+   ========================================================== */
+function showAmount(){
+  rerender = showAmount;
+  const d = S.draft, cls = typeClass(d.type), a = currentArticle();
+  const yest = addDays(S.ref.today, -1);
+  const isToday = d.date === S.ref.today, isYest = d.date === yest;
+  const showParty = d.type !== 'Расход';
+  screen(t('T_' + d.type), `
+    <div class="path">
+      <span class="pill c-${cls} bg-${cls}">${esc(catName(a))} → ${esc(subName(a))}</span>
+      <button class="chip" type="button" id="aChange">${esc(t('change'))}</button>
+    </div>
+    <div class="amount-layout">
+      <div class="field">
+        <span class="label" id="lblAmount">${esc(t('amount'))}</span>
+        <div class="display num ${d.digits ? '' : 'req'}" id="disp" role="status" aria-labelledby="lblAmount"></div>
+        <div class="pad" aria-label="${esc(t('amount'))}">
+          ${[1,2,3,4,5,6,7,8,9].map(n => `<button class="key" type="button" data-k="${n}">${n}</button>`).join('')}
+          <button class="key" type="button" data-k="000">000</button>
+          <button class="key" type="button" data-k="0">0</button>
+          <button class="key wide" type="button" data-k="del">${esc(t('erase'))}</button>
+        </div>
+      </div>
+      <div class="field" style="gap:18px">
+        <div class="field">
+          <span class="label">${esc(t('date'))}</span>
+          <div class="chips">
+            <button class="chip" type="button" data-date="today" aria-pressed="${isToday && !d.otherDate}">${esc(t('today'))}</button>
+            <button class="chip" type="button" data-date="yest" aria-pressed="${isYest && !d.otherDate}">${esc(t('yesterday'))}</button>
+            <button class="chip" type="button" data-date="other" aria-pressed="${d.otherDate || (!isToday && !isYest)}">${esc(t('otherDate'))}</button>
+          </div>
+          <input type="date" id="dateInp" value="${esc(d.date)}" max="${esc(S.ref.today)}" ${d.otherDate || (!isToday && !isYest) ? '' : 'hidden'} aria-label="${esc(t('date'))}">
+        </div>
+        <div class="field">
+          <span class="label">${esc(d.type === 'Расход' ? t('payExp') : t('payInc'))}</span>
+          <div class="chips">${S.ref.pays.map(p => `<button class="chip" type="button" data-pay="${esc(p.ru)}" aria-pressed="${d.pay === p.ru}">${esc(S.lang === 'uz' ? p.uz : p.ru)}</button>`).join('')}</div>
+        </div>
+        ${showParty && S.ref.parties.length ? `<div class="field">
+          <span class="label">${esc(t('party'))} <em>(${esc(t('optional'))})</em></span>
+          <div class="chips"><button class="chip" type="button" data-party="" aria-pressed="${!d.party}">${esc(t('none'))}</button>
+          ${S.ref.parties.map(p => `<button class="chip" type="button" data-party="${esc(p)}" aria-pressed="${d.party === p}">${esc(p)}</button>`).join('')}</div>
+        </div>` : ''}
+        <div class="field">
+          <label class="label" for="cmt">${esc(t('comment'))} <em>(${esc(t('optional'))})</em></label>
+          <textarea id="cmt" maxlength="500">${esc(d.comment)}</textarea>
+          <p class="hint">${esc(t('commentHint'))}</p>
+        </div>
+      </div>
+    </div>
+    <p class="need" id="need">${esc(t('needAmount'))}</p>
+    <div class="actions"><button class="btn ${cls}" type="button" id="aNext">${esc(t('next'))}</button></div>`, d.pickBack);
+
+  const disp = document.getElementById('disp'), next = document.getElementById('aNext'), need = document.getElementById('need');
+  const upd = () => {
+    const ok = Number(d.digits) > 0;
+    disp.innerHTML = (d.digits ? money(d.digits) : '0') + `<span class="cur">${esc(t('sum'))}</span>`;
+    disp.classList.toggle('req', !ok);
+    next.disabled = !ok; need.hidden = ok;
+  };
+  upd();
+  $app.querySelectorAll('[data-k]').forEach(b => b.onclick = () => {
+    const k = b.dataset.k;
+    if (k === 'del') d.digits = d.digits.slice(0, -1);
+    else { let s = (d.digits + k).replace(/^0+/, ''); if (s.length <= 11) d.digits = s; }
+    upd();
+  });
+  $app.querySelectorAll('[data-date]').forEach(b => b.onclick = () => {
+    const v = b.dataset.date;
+    d.otherDate = v === 'other';
+    if (v === 'today') d.date = S.ref.today; else if (v === 'yest') d.date = yest;
+    keepComment(); showAmount();
+  });
+  document.getElementById('dateInp').onchange = (e) => { const v = e.target.value; if (v && v <= S.ref.today) d.date = v; else e.target.value = d.date; };
+  $app.querySelectorAll('[data-pay]').forEach(b => b.onclick = () => { d.pay = b.dataset.pay; keepComment(); showAmount(); });
+  $app.querySelectorAll('[data-party]').forEach(b => b.onclick = () => { d.party = b.dataset.party; keepComment(); showAmount(); });
+  document.getElementById('cmt').oninput = (e) => { d.comment = e.target.value; };
+  document.getElementById('aChange').onclick = () => { keepComment(); d.pickBack(); };
+  next.onclick = () => { keepComment(); if (Number(d.digits) > 0) showConfirm(); };
+}
+function keepComment(){ const c = document.getElementById('cmt'); if (c && S.draft) S.draft.comment = c.value; }
+function currentArticle(){ const d = S.draft; return S.ref.articles.find(a => a.type === d.type && a.cat === d.cat && a.sub === d.sub) || { cat: d.cat, catUz: d.cat, sub: d.sub, subUz: d.sub }; }
+
+/* ==========================================================
+   ПОДТВЕРЖДЕНИЕ И ЗАПИСЬ
+   ========================================================== */
+function showConfirm(){
+  rerender = showConfirm;
+  const d = S.draft, cls = typeClass(d.type), a = currentArticle(), amount = Number(d.digits);
+  const typical = S.ref.typical[d.type + '|' + d.cat + '|' + d.sub];
+  const warn = typical && amount >= typical * CONFIG.WARN_FACTOR;
+  screen(t('checkT'), `
+    <h2>${esc(t('check'))}</h2>
+    <div class="card bg-${cls}" style="border-color:var(--${cls})">
+      <span class="pill c-${cls}" style="align-self:flex-start">${esc(t('T_' + d.type))}</span>
+      <div class="sum-big num c-${cls}">${money(amount)} ${esc(t('sum'))}</div>
+      <dl class="rows">
+        <dt>${esc(t('date'))}</dt><dd>${esc(fmtDate(d.date))}</dd>
+        <dt>${esc(catName(a))}</dt><dd>${esc(subName(a))}</dd>
+        <dt>${esc(d.type === 'Расход' ? t('payExp') : t('payInc'))}</dt><dd>${esc(payLabel(d.pay))}</dd>
+        ${d.party ? `<dt>${esc(t('party'))}</dt><dd>${esc(d.party)}</dd>` : ''}
+        ${d.comment.trim() ? `<dt>${esc(t('comment'))}</dt><dd>${esc(d.comment.trim())}</dd>` : ''}
+      </dl>
+    </div>
+    ${warn ? `<div class="warn" role="alert">${esc(t('warnBig', { n: Math.floor(amount / typical), a: subName(a), t: money(typical) }))}</div>` : ''}
+    <div class="actions">
+      <button class="btn ${cls}" type="button" id="cSave">${esc(t('save'))}</button>
+      <button class="btn ghost" type="button" id="cFix">${esc(t('fix'))}</button>
+    </div>`, showAmount);
+  document.getElementById('cFix').onclick = showAmount;
+  const btn = document.getElementById('cSave');
+  btn.onclick = async () => {
+    if (S.busy) return;               // повторное нажатие не отправит второй раз
+    S.busy = true; btn.disabled = true;
+    try {
+      const r = await api('add', { op: { id: d.id, type: d.type, cat: d.cat, sub: d.sub, amount, date: d.date,
+        pay: d.pay, party: d.party, comment: d.comment.trim() } }, t('saving'));
+      showSaved(r.duplicate);
+    } catch (e) {
+      // тот же ID: если первая попытка всё же дошла, сервер не создаст дубль
+      showError(e.code, () => showConfirm(), showConfirm);
+    } finally { S.busy = false; }
+  };
+}
+
+function showSaved(dup){
+  const d = S.draft, mode = d.mode, cls = typeClass(d.type);
+  rerender = () => showSaved(dup);
+  screen(t('saved'), `
+    <div class="result ok" role="status"><b>${esc(t('saved'))}</b>
+      <span class="num" style="font-size:26px;font-weight:700">${money(d.digits)} ${esc(t('sum'))}</span>
+      ${dup ? `<p>${esc(t('savedDup'))}</p>` : ''}</div>
+    <div class="actions">
+      <button class="btn ${cls}" type="button" id="sMore">${esc(t('oneMore'))}</button>
+      <button class="btn ghost" type="button" id="sHome">${esc(t('home'))}</button>
+    </div>`);
+  document.getElementById('sMore').onclick = () => startDraft(mode);
+  document.getElementById('sHome').onclick = showHome;
+}
+
+/* ==========================================================
+   ИСТОРИЯ
+   ========================================================== */
+async function showHistory(){
+  let data;
+  try { data = await api('history', { filter: S.histFilter }); }
+  catch (e) { return showError(e.code, showHistory, showHome); }
+  S.hist = data; S.confirmCancel = null;
+  renderHistory();
+}
+function renderHistory(){
+  rerender = renderHistory;
+  const f = S.histFilter, boss = isBoss();
+  const types = boss ? ['Расход', 'Доход', 'Вложение', 'Перевод'] : [];
+  const catList = cats(f.type || 'Расход').concat(f.type ? [] : (boss ? cats('Доход') : []));
+  const items = S.hist.items, mins = (S.ref.cancelMinutes || 10) * 60000;
+  screen(t('history'), `
+    ${types.length ? `<div class="scroll-x" role="group">
+      <button class="chip" type="button" data-ft="" aria-pressed="${!f.type}">${esc(t('all'))}</button>
+      ${types.map(x => `<button class="chip" type="button" data-ft="${x}" aria-pressed="${f.type === x}">${esc(t('T_' + x))}</button>`).join('')}</div>` : ''}
+    <div class="scroll-x" role="group">
+      <button class="chip" type="button" data-fc="" aria-pressed="${!f.cat}">${esc(t('all'))}</button>
+      ${catList.map(a => `<button class="chip" type="button" data-fc="${esc(a.cat)}" aria-pressed="${f.cat === a.cat}">${esc(catName(a))}</button>`).join('')}</div>
+    <div class="list">
+      ${items.length ? items.map(o => {
+        const c = typeClass(o.type);
+        const left = Math.max(1, Math.ceil((mins - (S.hist.now - o.created)) / 60000));
+        return `<div class="item ${c} ${o.cancelled ? 'off' : ''}">
+          <div><b>${esc(catLabel(o.type, o.cat))}</b> → ${esc(subLabel(o))}</div>
+          <div class="s num c-${c}">${o.type === 'Расход' ? '−' : ''}${money(o.sum)}</div>
+          <div class="m">${esc(fmtDate(o.date))} · ${esc(payLabel(o.pay))}${o.party ? ' · ' + esc(o.party) : ''} · ${esc(t('who'))}: ${esc(o.who)}${o.cancelled ? ' · <b>' + esc(t('cancelled')) + '</b>' : ''}</div>
+          ${o.comment ? `<div class="m">${esc(o.comment)}</div>` : ''}
+          ${o.canCancel ? (S.confirmCancel === o.id
+            ? `<div class="a"><b style="align-self:center">${esc(t('cancelQ'))}</b>
+                <button class="chip" type="button" data-yes="${esc(o.id)}" style="border-color:var(--exp);color:var(--exp)">${esc(t('yesCancel'))}</button>
+                <button class="chip" type="button" data-no="1">${esc(t('no'))}</button></div>`
+            : `<div class="a"><button class="chip" type="button" data-cancel="${esc(o.id)}">${esc(t('cancelRec'))}</button>
+                <span class="hint" style="align-self:center">${esc(t('cancelLeft', { m: left }))}</span></div>`) : ''}
+        </div>`; }).join('') : `<div class="empty">${esc(t('empty'))}</div>`}
+    </div>`, showHome);
+  $app.querySelectorAll('[data-ft]').forEach(b => b.onclick = () => { S.histFilter = { type: b.dataset.ft || undefined }; showHistory(); });
+  $app.querySelectorAll('[data-fc]').forEach(b => b.onclick = () => { S.histFilter = { type: f.type, cat: b.dataset.fc || undefined }; showHistory(); });
+  $app.querySelectorAll('[data-cancel]').forEach(b => b.onclick = () => { S.confirmCancel = b.dataset.cancel; renderHistory(); });
+  $app.querySelectorAll('[data-no]').forEach(b => b.onclick = () => { S.confirmCancel = null; renderHistory(); });
+  $app.querySelectorAll('[data-yes]').forEach(b => b.onclick = async () => {
+    if (S.busy) return; S.busy = true;
+    try { await api('cancel', { id: b.dataset.yes }); await showHistory(); }
+    catch (e) { showError(e.code, showHistory, showHistory); }
+    finally { S.busy = false; }
+  });
+}
+function subLabel(o){ const a = S.ref.articles.find(x => x.type === o.type && x.cat === o.cat && x.sub === o.sub); return a ? subName(a) : o.sub; }
+
+/* ==========================================================
+   ОТЧЁТЫ (считает сервер, здесь только показ)
+   ========================================================== */
+function periodDates(p){
+  const today = S.ref.today;
+  if (p === 'today') return [today, today];
+  if (p === 'week') return [addDays(today, -6), today];
+  if (p === 'month') return [today.slice(0, 8) + '01', today];
+  return [S.rep.from || today.slice(0, 8) + '01', S.rep.to || today];
+}
+async function showReports(){
+  const r = S.rep;
+  const [from, to] = periodDates(r.period);
+  if (r.period !== 'custom') { r.from = from; r.to = to; }
+  try { r.data = await api('report', { from, to }); }
+  catch (e) { return showError(e.code, showReports, showHome); }
+  renderReports();
+}
+function renderReports(){
+  rerender = renderReports;
+  const r = S.rep, d = r.data;
+  const periods = [['today', 'pToday'], ['week', 'pWeek'], ['month', 'pMonth'], ['custom', 'pCustom']];
+  const tabs = [['total', 'tTotal'], ['cats', 'tCats'], ['dyn', 'tDyn'], ['pay', 'tPay']];
+  screen(t('reports'), `
+    <div class="chips" role="group">${periods.map(([k, l]) => `<button class="chip" type="button" data-p="${k}" aria-pressed="${r.period === k}">${esc(t(l))}</button>`).join('')}</div>
+    ${r.period === 'custom' ? `<div class="dates">
+      <label class="field"><span class="label">${esc(t('from'))}</span><input type="date" id="rFrom" value="${esc(r.from)}" max="${esc(S.ref.today)}"></label>
+      <label class="field"><span class="label">${esc(t('to'))}</span><input type="date" id="rTo" value="${esc(r.to)}" max="${esc(S.ref.today)}"></label>
+      <button class="btn" type="button" id="rShow" style="flex:0 1 auto">${esc(t('show'))}</button></div>` : ''}
+    <p class="hint">${esc(t('period', { a: fmtDate(d.from), b: fmtDate(d.to) }))} · ${esc(t('ops', { n: d.count }))}</p>
+    <div class="tabs" role="tablist">${tabs.map(([k, l]) => `<button class="tab" type="button" role="tab" data-tab="${k}" aria-selected="${r.tab === k}">${esc(t(l))}</button>`).join('')}</div>
+    <div id="tabBody">${reportBody()}</div>`, showHome);
+  $app.querySelectorAll('[data-p]').forEach(b => b.onclick = () => { r.period = b.dataset.p; if (r.period === 'custom') renderReports(); else showReports(); });
+  $app.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { r.tab = b.dataset.tab; renderReports(); });
+  const show = document.getElementById('rShow');
+  if (show) show.onclick = () => {
+    const a = document.getElementById('rFrom').value, b = document.getElementById('rTo').value;
+    if (!a || !b) return;
+    r.from = a <= b ? a : b; r.to = a <= b ? b : a; showReports();
+  };
+}
+function reportBody(){
+  const d = S.rep.data, tab = S.rep.tab, tot = d.totals;
+  if (!d.count) return `<div class="empty">${esc(t('noData'))}</div>`;
+  if (tab === 'total') return `
+    <div class="kpis">
+      <div class="kpi inc"><span>${esc(t('incT'))}</span><b class="num">${money(tot.income)}</b><small>${esc(t('sum'))}</small></div>
+      <div class="kpi exp"><span>${esc(t('expT'))}</span><b class="num">${money(tot.expense)}</b><small>${esc(t('sum'))}</small></div>
+      <div class="kpi"><span>${esc(t('diffT'))}</span><b class="num ${tot.diff < 0 ? 'c-exp' : 'c-inc'}">${money(tot.diff)}</b><small>${esc(t('sum'))}</small></div>
+    </div>
+    <div class="side">
+      <div><span>${esc(t('invT'))}</span><br><b class="num">${money(tot.invest)}</b> ${esc(t('sum'))}<br><small class="hint">${esc(t('notCounted'))}</small></div>
+      <div><span>${esc(t('trT'))}</span><br><b class="num">${money(tot.transfer)}</b> ${esc(t('sum'))}<br><small class="hint">${esc(t('notCounted'))}</small></div>
+    </div>`;
+  if (tab === 'cats') return bars(t('expT'), d.expByCat, 'Расход', 'var(--exp)') + bars(t('incT'), d.incByCat, 'Доход', 'var(--inc)');
+  if (tab === 'dyn') {
+    const p = d.prevTotals;
+    const card = (name, now, before, goodUp) => `<div><span class="n">${esc(name)}</span>
+      <span class="p num">${esc(t('nowCol'))}: <b>${money(now)}</b> · ${esc(t('beforeCol'))}: ${money(before)}</span>
+      <span class="num">${trend(now - before, before, goodUp)}</span></div>`;
+    return `<p class="hint">${esc(t('comparedWith', { a: fmtDate(d.prevFrom), b: fmtDate(d.prevTo) }))}</p>
+      <div class="dyn">${card(t('incT'), d.totals.income, p.income, true)}${card(t('expT'), d.totals.expense, p.expense)}</div>
+      <h3>${esc(t('expT'))}</h3>
+      <div class="dyn">${d.dynamics.map(x => card(catLabel('Расход', x.name), x.now, x.before)).join('')}</div>`;
+  }
+  return `<div class="tbl-wrap"><table><thead><tr><th></th><th>${esc(t('expT'))}</th><th>${esc(t('incT'))}</th></tr></thead><tbody>
+    ${d.byPay.map(x => `<tr><td>${esc(payLabel(x.name))}</td><td class="num c-exp">${money(x.expense)}</td><td class="num c-inc">${money(x.income)}</td></tr>`).join('')}
+    </tbody></table></div>`;
+}
+function bars(title, list, type, color){
+  if (!list.length) return '';
+  const max = Math.max.apply(null, list.map(x => x.sum)) || 1;
+  return `<h3>${esc(title)}</h3><div class="bars">${list.map(x => `
+    <div class="bar-row"><span class="n">${esc(catLabel(type, x.name))}</span><span class="v num">${money(x.sum)} · ${Math.round(x.share * 100)}%</span>
+    <div class="bar-track"><div class="bar-fill" style="width:${Math.max(1, x.sum / max * 100)}%;background:${color}"></div></div></div>`).join('')}</div>`;
+}
+// Рост расходов — красным, рост доходов — зелёным
+function trend(diff, before, goodUp){
+  if (!diff) return esc(t('same'));
+  const cls = (diff > 0) === !!goodUp ? 'down' : 'up';
+  if (!before) return `<span class="${cls}">+${money(diff)} (${esc(t('newCat'))})</span>`;
+  const pct = Math.round(Math.abs(diff) / before * 100);
+  return diff > 0 ? `<span class="${cls}">+${money(diff)} · ${esc(t('grew'))} ${pct}%</span>`
+                  : `<span class="${cls}">−${money(-diff)} · ${esc(t('fell'))} ${pct}%</span>`;
+}
+
+start();
+</script>
+</body>
+</html>
