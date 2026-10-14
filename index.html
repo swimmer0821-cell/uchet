@@ -199,7 +199,7 @@ const T = {
     saved:'Записано', savedDup:'Эта запись уже была сохранена раньше, повтора нет.', oneMore:'Ещё запись',
     error:'Ошибка', retry:'Повторить', loading:'Загрузка…', saving:'Записываю…',
     cancelRec:'Отменить', editRec:'Изменить', editT:'Изменение', checkEdit:'Проверьте изменения', saveEdit:'Сохранить изменения', edited:'Изменено', editedMark:'изменено: {w}', toHistory:'К истории', wasSum:'Было',  cancelQ:'Отменить эту запись?', yesCancel:'Да, отменить', no:'Нет', cancelled:'Отменена',
-    cancelLeft:'изменить можно ещё {m} мин', all:'Все', empty:'Записей пока нет', who:'Внёс',
+    cancelLeft:'отменить можно ещё {m} мин', all:'Все', empty:'Записей пока нет', who:'Внёс',
     pToday:'Сегодня', pWeek:'Неделя', pMonth:'Месяц', pCustom:'Свой период', from:'С', to:'По', show:'Показать',
     tTotal:'Итог', tCats:'По статьям', tDyn:'Динамика', tPay:'Наличные и перечисление',
     incT:'Доходы', expT:'Расходы', diffT:'Разница', invT:'Вложения и займы', trT:'Переводы между своими',
@@ -212,7 +212,7 @@ const T = {
     ERR_ROLE:'Это может делать только руководитель.', ERR_AMOUNT:'Сумма должна быть больше нуля.',
     ERR_AMOUNT_BIG:'Слишком большая сумма. Проверьте нули.', ERR_ARTICLE:'Такой статьи нет в справочнике. Закройте и откройте приложение заново.',
     ERR_PAY:'Такого способа оплаты нет в справочнике.', ERR_DATE:'Неверная дата.', ERR_DATE_FUTURE:'Дата не может быть позже сегодняшней.',
-    ERR_CANCEL_TIME:'Прошло больше {m} минут — изменить или отменить нельзя. Попросите руководителя.',
+    ERR_CANCEL_TIME:'Прошло больше {m} минут — отменить нельзя. Запись можно изменить или попросить руководителя её отменить.', ERR_CANCELLED:'Запись уже отменена, её нельзя изменить.',
     ERR_NOT_FOUND:'Запись не найдена.', ERR_DATA:'Ошибка данных. Закройте и откройте приложение заново.',
     ERR_SETUP:'Таблица не настроена. Запустите «Учёт → Настроить таблицу».',
     ERR_CONFIG:'В файле index.html не указан адрес Apps Script (API_URL).'
@@ -234,7 +234,7 @@ const T = {
     saved:'Yozildi', savedDup:'Bu yozuv avval saqlangan, takror yoʻq.', oneMore:'Yana yozuv',
     error:'Xato', retry:'Qaytadan', loading:'Yuklanmoqda…', saving:'Yozilmoqda…',
     cancelRec:'Bekor qilish', editRec:'Tahrirlash', editT:'Tahrir', checkEdit:'Oʻzgarishlarni tekshiring', saveEdit:'Oʻzgarishlarni saqlash', edited:'Oʻzgartirildi', editedMark:'oʻzgartirildi: {w}', toHistory:'Tarixga', wasSum:'Oldin',  cancelQ:'Bu yozuvni bekor qilasizmi?', yesCancel:'Ha, bekor qilish', no:'Yoʻq', cancelled:'Bekor qilingan',
-    cancelLeft:'yana {m} daqiqa oʻzgartirish mumkin', all:'Hammasi', empty:'Hozircha yozuvlar yoʻq', who:'Kiritdi',
+    cancelLeft:'yana {m} daqiqa bekor qilish mumkin', all:'Hammasi', empty:'Hozircha yozuvlar yoʻq', who:'Kiritdi',
     pToday:'Bugun', pWeek:'Hafta', pMonth:'Oy', pCustom:'Oʻz davri', from:'Dan', to:'Gacha', show:'Koʻrsatish',
     tTotal:'Jami', tCats:'Moddalar boʻyicha', tDyn:'Oʻzgarish', tPay:'Naqd va bank orqali',
     incT:'Daromadlar', expT:'Xarajatlar', diffT:'Farq', invT:'Investitsiya va qarzlar', trT:'Oʻz hisoblar oʻrtasida',
@@ -247,7 +247,7 @@ const T = {
     ERR_ROLE:'Buni faqat rahbar qila oladi.', ERR_AMOUNT:'Summa noldan katta boʻlishi kerak.',
     ERR_AMOUNT_BIG:'Summa juda katta. Nollarni tekshiring.', ERR_ARTICLE:'Bunday modda maʼlumotnomada yoʻq. Ilovani yopib, qayta oching.',
     ERR_PAY:'Bunday toʻlov usuli yoʻq.', ERR_DATE:'Sana notoʻgʻri.', ERR_DATE_FUTURE:'Sana bugundan keyin boʻlishi mumkin emas.',
-    ERR_CANCEL_TIME:'{m} daqiqadan koʻp vaqt oʻtdi — oʻzgartirib yoki bekor qilib boʻlmaydi. Rahbardan soʻrang.',
+    ERR_CANCEL_TIME:'{m} daqiqadan koʻp vaqt oʻtdi — bekor qilib boʻlmaydi. Yozuvni tahrirlash yoki rahbardan bekor qilishni soʻrash mumkin.', ERR_CANCELLED:'Yozuv bekor qilingan, uni tahrirlab boʻlmaydi.',
     ERR_NOT_FOUND:'Yozuv topilmadi.', ERR_DATA:'Maʼlumot xatosi. Ilovani yopib, qayta oching.',
     ERR_SETUP:'Jadval sozlanmagan. «Учёт → Настроить таблицу» ni ishga tushiring.',
     ERR_CONFIG:'index.html faylida Apps Script manzili (API_URL) koʻrsatilmagan.'
@@ -691,13 +691,13 @@ function renderHistory(){
           <div class="m">${esc(fmtDate(o.date))} · ${esc(payLabel(o.pay))}${o.party ? ' · ' + esc(o.party) : ''} · ${esc(t('who'))}: ${esc(o.who)}${o.cancelled ? ' · <b>' + esc(t('cancelled')) + '</b>' : ''}</div>
           ${o.comment ? `<div class="m">${esc(o.comment)}</div>` : ''}
           ${o.edited ? `<div class="m">${esc(t('editedMark', { w: o.edited }))}</div>` : ''}
-          ${o.canCancel ? (S.confirmCancel === o.id
+          ${(o.canEdit || o.canCancel) ? (S.confirmCancel === o.id
             ? `<div class="a"><b style="align-self:center">${esc(t('cancelQ'))}</b>
                 <button class="chip" type="button" data-yes="${esc(o.id)}" style="border-color:var(--exp);color:var(--exp)">${esc(t('yesCancel'))}</button>
                 <button class="chip" type="button" data-no="1">${esc(t('no'))}</button></div>`
-            : `<div class="a"><button class="chip" type="button" data-edit="${esc(o.id)}">${esc(t('editRec'))}</button>
-                <button class="chip" type="button" data-cancel="${esc(o.id)}">${esc(t('cancelRec'))}</button>
-                ${isBoss() ? '' : `<span class="hint" style="align-self:center">${esc(t('cancelLeft', { m: left }))}</span>`}</div>`) : ''}
+            : `<div class="a">${o.canEdit ? `<button class="chip" type="button" data-edit="${esc(o.id)}">${esc(t('editRec'))}</button>` : ''}
+                ${o.canCancel ? `<button class="chip" type="button" data-cancel="${esc(o.id)}">${esc(t('cancelRec'))}</button>
+                ${isBoss() ? '' : `<span class="hint" style="align-self:center">${esc(t('cancelLeft', { m: left }))}</span>`}` : ''}</div>`) : ''}
         </div>`; }).join('') : `<div class="empty">${esc(t('empty'))}</div>`}
     </div>`, showHome);
   $app.querySelectorAll('[data-ft]').forEach(b => b.onclick = () => { S.histFilter = { type: b.dataset.ft || undefined }; showHistory(); });
