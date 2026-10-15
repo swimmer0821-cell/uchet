@@ -327,6 +327,8 @@ let rerender = () => {};
 
 function showError(code, retryFn, backFn){
   rerender = () => showError(code, retryFn, backFn);
+  // PIN не подходит (сменили или поставили, пока приложение было открыто) — сразу на экран входа
+  if ((code === 'ERR_PIN' || code === 'ERR_NO_PIN' || code === 'ERR_USER') && S.ref) { logout(); return showLogin(); }
   screen(t('error'), `
     <div class="result bad" role="alert"><b>${esc(t('error'))}</b><p>${esc(errText(code))}</p></div>
     <div class="actions">
