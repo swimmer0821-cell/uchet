@@ -27,6 +27,7 @@ const TIMEZONE = 'Asia/Tashkent';
 const TYPES = ['Расход', 'Доход', 'Вложение', 'Перевод'];
 const STATUS_CANCELLED = 'Отменена';
 const ROLE_BOSS = 'Руководитель';
+const STAFF_TYPES = ['Расход', 'Доход'];   // что может записывать сотрудник
 
 // Колонки листа «Операции»
 const OPS_HEADERS = ['ID', 'Дата', 'Тип', 'Статья', 'Подстатья', 'Сумма', 'Способ оплаты',
@@ -359,7 +360,7 @@ function readRef_() {
 // ===================== ДАННЫЕ ДЛЯ ЗАПУСКА ПРИЛОЖЕНИЯ =====================
 function init_(user) {
   const ref = readRef_();
-  const allowed = user.role === 'boss' ? TYPES : ['Расход'];
+  const allowed = user.role === 'boss' ? TYPES : STAFF_TYPES;
   return {
     user: { name: user.name, role: user.role },
     articles: ref.articles.filter(a => allowed.indexOf(a.type) >= 0),
@@ -461,7 +462,7 @@ function validateOp_(user, op) {
   if (!op) throw new Error('ERR_DATA');
   const type = String(op.type || '');
   if (TYPES.indexOf(type) < 0) throw new Error('ERR_DATA');
-  if (user.role !== 'boss' && type !== 'Расход') throw new Error('ERR_ROLE');
+  if (user.role !== 'boss' && STAFF_TYPES.indexOf(type) < 0) throw new Error('ERR_ROLE');
 
   const amount = Math.round(Number(op.amount));
   if (!isFinite(amount) || amount <= 0) throw new Error('ERR_AMOUNT');

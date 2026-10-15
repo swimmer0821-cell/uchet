@@ -443,16 +443,14 @@ function showHome(){
     <p class="hint">${esc(t('hello', { n: S.user.name }))}</p>
     <div class="home">
       <button class="big exp" type="button" id="hExp"><b>${esc(t('expense'))}</b><span>${esc(t('expenseSub'))}</span></button>
-      ${boss ? `<button class="big inc" type="button" id="hInc"><b>${esc(t('income'))}</b><span>${esc(t('incomeSub'))}</span></button>` : ''}
+      <button class="big inc" type="button" id="hInc"><b>${esc(t('income'))}</b><span>${esc(t('incomeSub'))}</span></button>
       ${boss ? `<button class="big" type="button" id="hRep"><b>${esc(t('reports'))}</b><span>${esc(t('reportsSub'))}</span></button>` : ''}
       <button class="big" type="button" id="hHis"><b>${esc(t('history'))}</b><span>${esc(t('historySub'))}</span></button>
     </div>
     <div class="actions"><button class="btn ghost" type="button" id="hOut">${esc(t('logout'))}</button></div>`);
   document.getElementById('hExp').onclick = () => startDraft('exp');
-  if (boss) {
-    document.getElementById('hInc').onclick = () => startDraft('inc');
-    document.getElementById('hRep').onclick = () => showReports();
-  }
+  document.getElementById('hInc').onclick = () => startDraft('inc');
+  if (boss) document.getElementById('hRep').onclick = () => showReports();
   document.getElementById('hHis').onclick = () => { S.histFilter = {}; showHistory(); };
   document.getElementById('hOut').onclick = () => { logout(); showLogin(); };
 }
@@ -753,8 +751,8 @@ async function showHistory(){
 function renderHistory(){
   rerender = renderHistory;
   const f = S.histFilter, boss = isBoss();
-  const types = boss ? ['Расход', 'Доход', 'Вложение', 'Перевод'] : [];
-  const catList = cats(f.type || 'Расход').concat(f.type ? [] : (boss ? cats('Доход') : []));
+  const types = boss ? ['Расход', 'Доход', 'Вложение', 'Перевод'] : ['Расход', 'Доход'];
+  const catList = cats(f.type || 'Расход').concat(f.type ? [] : cats('Доход'));
   const items = S.hist.items, mins = (S.ref.cancelMinutes || 10) * 60000;
   screen(t('history'), `
     ${types.length ? `<div class="scroll-x" role="group">
