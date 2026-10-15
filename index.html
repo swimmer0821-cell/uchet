@@ -55,6 +55,11 @@ h3{font-size:19px;margin:8px 0 0;color:var(--muted)}
 .big span{font-size:18px;color:var(--muted)}
 .big.exp{background:var(--exp-bg);border-color:var(--exp);color:var(--exp)}
 .big.inc{background:var(--inc-bg);border-color:var(--inc);color:var(--inc)}
+.big.bal{background:var(--neu-bg);border-color:var(--neu);color:var(--neu)}
+.bal-list{display:flex;flex-direction:column;gap:10px}
+.bal-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;border:2px solid var(--line);border-radius:var(--r);padding:14px 16px}
+.bal-row b{font-size:22px} .bal-row .num{font-size:24px;font-weight:700;white-space:nowrap}
+.bal-total{border-color:var(--neu);background:var(--neu-bg);color:var(--neu)} .bal-total .num{font-size:30px}
 
 /* Плитки */
 .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
@@ -190,7 +195,7 @@ const T = {
     app:'Учёт SUB PROFI', langBtn:'Oʻzbekcha', back:'Назад', home:'Главная',
     whoAreYou:'Кто вы?', whoHint:'Нажмите на своё имя', enterPin:'Введите PIN', newPin:'Первый вход. Придумайте PIN из 4 цифр и запомните его', repeatPin:'Повторите PIN', pinMismatch:'PIN не совпал. Придумайте ещё раз.', hello:'Здравствуйте, {n}',
     expense:'Расход', expenseSub:'Потратили деньги', income:'Доход', incomeSub:'Деньги пришли',
-    reports:'Отчёты', reportsSub:'Сколько пришло и ушло', history:'История', historySub:'Последние записи',
+    reports:'Отчёты', reportsSub:'Сколько пришло и ушло', history:'История', historySub:'Последние записи', balance:'Остаток', balanceSub:'Сколько денег в кассах', balTotal:'Всего денег', balOn:'по записям на {d}', balNote:'Считается по всем записям с начала учёта: начальный остаток + доходы и вложения − расходы, переводы перекладывают между кассами. Начальный остаток руководитель вписывает в таблицу: лист «Справочники», колонка L.', balNeg:'Минус: проверьте записи или начальный остаток.', payFrom:'Откуда взяли', payTo:'Куда положили',
     logout:'Сменить пользователя',
     whatPaid:'На что потратили?', fromWhere:'Что пришло?', clarify:'Уточните', other:'Другое', otherSub:'Все статьи',
     groupInc:'Доходы', groupInv:'Вложения и займы — не доход', groupTr:'Перевод между своими — не расход',
@@ -212,7 +217,7 @@ const T = {
     period:'Период: {a} — {b}', comparedWith:'Сравнение с {a} — {b}', noData:'За этот период записей нет',
     T_Расход:'Расход', T_Доход:'Доход', T_Вложение:'Вложение', T_Перевод:'Перевод',
     ERR_NET:'Нет связи с интернетом или сервер не ответил. Проверьте интернет и нажмите «Повторить».',
-    ERR_PIN:'Неверный PIN. Попробуйте ещё раз.', ERR_NO_PIN:'Нужно придумать PIN.', ERR_PIN_EXISTS:'PIN уже задан. Введите его. Если забыли — попросите руководителя сбросить.', ERR_PIN_FORMAT:'PIN — это 4 цифры.', ERR_USER:'Пользователь не найден. Выберите себя заново.',
+    ERR_PIN:'Неверный PIN. Попробуйте ещё раз.', ERR_PAY_TO:'Выберите, куда положили деньги — другую кассу.', ERR_NO_PIN:'Нужно придумать PIN.', ERR_PIN_EXISTS:'PIN уже задан. Введите его. Если забыли — попросите руководителя сбросить.', ERR_PIN_FORMAT:'PIN — это 4 цифры.', ERR_USER:'Пользователь не найден. Выберите себя заново.',
     ERR_ROLE:'Это может делать только руководитель.', ERR_AMOUNT:'Сумма должна быть больше нуля.',
     ERR_AMOUNT_BIG:'Слишком большая сумма. Проверьте нули.', ERR_ARTICLE:'Такой статьи нет в справочнике. Закройте и откройте приложение заново.',
     ERR_PAY:'Такого способа оплаты нет в справочнике.', ERR_DATE:'Неверная дата.', ERR_DATE_FUTURE:'Дата не может быть позже сегодняшней.',
@@ -225,7 +230,7 @@ const T = {
     app:'SUB PROFI hisobi', langBtn:'Русский', back:'Orqaga', home:'Bosh sahifa',
     whoAreYou:'Siz kimsiz?', whoHint:'Ismingizni bosing', enterPin:'PIN kodni kiriting', newPin:'Birinchi kirish. 4 raqamli PIN oʻylab toping va eslab qoling', repeatPin:'PINni takrorlang', pinMismatch:'PIN mos kelmadi. Qaytadan oʻylab toping.', hello:'Assalomu alaykum, {n}',
     expense:'Xarajat', expenseSub:'Pul sarflandi', income:'Daromad', incomeSub:'Pul keldi',
-    reports:'Hisobotlar', reportsSub:'Qancha keldi va ketdi', history:'Tarix', historySub:'Oxirgi yozuvlar',
+    reports:'Hisobotlar', reportsSub:'Qancha keldi va ketdi', history:'Tarix', historySub:'Oxirgi yozuvlar', balance:'Qoldiq', balanceSub:'Kassalarda qancha pul bor', balTotal:'Jami pul', balOn:'{d} holatiga yozuvlar boʻyicha', balNote:'Hisob boshidan barcha yozuvlar boʻyicha: boshlangʻich qoldiq + daromad va investitsiyalar − xarajatlar, oʻtkazmalar kassalar orasida koʻchiradi. Boshlangʻich qoldiqni rahbar jadvalga yozadi: «Справочники» varagʻi, L ustun.', balNeg:'Minus: yozuvlarni yoki boshlangʻich qoldiqni tekshiring.', payFrom:'Qayerdan olindi', payTo:'Qayerga qoʻyildi',
     logout:'Foydalanuvchini almashtirish',
     whatPaid:'Nimaga sarfladingiz?', fromWhere:'Nima keldi?', clarify:'Aniqlang', other:'Boshqa', otherSub:'Barcha moddalar',
     groupInc:'Daromadlar', groupInv:'Investitsiya va qarzlar — daromad emas', groupTr:'Oʻz hisoblar oʻrtasida — xarajat emas',
@@ -247,7 +252,7 @@ const T = {
     period:'Davr: {a} — {b}', comparedWith:'Taqqoslash: {a} — {b}', noData:'Bu davrda yozuvlar yoʻq',
     T_Расход:'Xarajat', T_Доход:'Daromad', T_Вложение:'Investitsiya', T_Перевод:'Oʻtkazma',
     ERR_NET:'Internet yoʻq yoki server javob bermadi. Internetni tekshiring va «Qaytadan» ni bosing.',
-    ERR_PIN:'PIN notoʻgʻri. Qaytadan urinib koʻring.', ERR_NO_PIN:'PIN oʻylab topish kerak.', ERR_PIN_EXISTS:'PIN allaqachon bor. Uni kiriting. Unutgan boʻlsangiz, rahbardan tiklashni soʻrang.', ERR_PIN_FORMAT:'PIN — bu 4 ta raqam.', ERR_USER:'Foydalanuvchi topilmadi. Oʻzingizni qaytadan tanlang.',
+    ERR_PIN:'PIN notoʻgʻri. Qaytadan urinib koʻring.', ERR_PAY_TO:'Pul qayerga qoʻyilganini tanlang — boshqa kassani.', ERR_NO_PIN:'PIN oʻylab topish kerak.', ERR_PIN_EXISTS:'PIN allaqachon bor. Uni kiriting. Unutgan boʻlsangiz, rahbardan tiklashni soʻrang.', ERR_PIN_FORMAT:'PIN — bu 4 ta raqam.', ERR_USER:'Foydalanuvchi topilmadi. Oʻzingizni qaytadan tanlang.',
     ERR_ROLE:'Buni faqat rahbar qila oladi.', ERR_AMOUNT:'Summa noldan katta boʻlishi kerak.',
     ERR_AMOUNT_BIG:'Summa juda katta. Nollarni tekshiring.', ERR_ARTICLE:'Bunday modda maʼlumotnomada yoʻq. Ilovani yopib, qayta oching.',
     ERR_PAY:'Bunday toʻlov usuli yoʻq.', ERR_DATE:'Sana notoʻgʻri.', ERR_DATE_FUTURE:'Sana bugundan keyin boʻlishi mumkin emas.',
@@ -445,12 +450,14 @@ function showHome(){
       <button class="big exp" type="button" id="hExp"><b>${esc(t('expense'))}</b><span>${esc(t('expenseSub'))}</span></button>
       <button class="big inc" type="button" id="hInc"><b>${esc(t('income'))}</b><span>${esc(t('incomeSub'))}</span></button>
       ${boss ? `<button class="big" type="button" id="hRep"><b>${esc(t('reports'))}</b><span>${esc(t('reportsSub'))}</span></button>` : ''}
+      <button class="big bal" type="button" id="hBal"><b>${esc(t('balance'))}</b><span>${esc(t('balanceSub'))}</span></button>
       <button class="big" type="button" id="hHis"><b>${esc(t('history'))}</b><span>${esc(t('historySub'))}</span></button>
     </div>
     <div class="actions"><button class="btn ghost" type="button" id="hOut">${esc(t('logout'))}</button></div>`);
   document.getElementById('hExp').onclick = () => startDraft('exp');
   document.getElementById('hInc').onclick = () => startDraft('inc');
   if (boss) document.getElementById('hRep').onclick = () => showReports();
+  document.getElementById('hBal').onclick = () => showBalance();
   document.getElementById('hHis').onclick = () => { S.histFilter = {}; showHistory(); };
   document.getElementById('hOut').onclick = () => { logout(); showLogin(); };
 }
@@ -460,14 +467,14 @@ function showHome(){
    ========================================================== */
 function startDraft(mode){
   S.draft = { mode, id: newId(), type: null, cat: null, sub: null, digits: '', date: S.ref.today,
-    pay: S.ref.pays[0] ? S.ref.pays[0].ru : '', party: '', comment: '', otherDate: false, name: '', qty: '', unit: 'кг' };
+    pay: S.ref.pays[0] ? S.ref.pays[0].ru : '', payTo: '', party: '', comment: '', otherDate: false, name: '', qty: '', unit: 'кг' };
   mode === 'exp' ? showQuick() : showIncomeCats();
 }
 
 // Изменение существующей записи: открываем тот же экран суммы с заполненными полями
 function startEdit(o){
   S.draft = { mode: o.type === 'Расход' ? 'exp' : 'inc', editId: o.id, oldSum: o.sum, type: o.type, cat: o.cat, sub: o.sub,
-    digits: String(Math.round(o.sum)), date: o.date, pay: o.pay, party: o.party || '', comment: o.comment || '', otherDate: false,
+    digits: String(Math.round(o.sum)), date: o.date, pay: o.pay, payTo: o.payTo || '', party: o.party || '', comment: o.comment || '', otherDate: false,
     name: o.name || '', qty: o.qty === '' || o.qty == null ? '' : String(o.qty), unit: o.unit || 'кг',
     pickBack: showHistory };
   showAmount();
@@ -587,9 +594,13 @@ function showAmount(){
           <input type="date" id="dateInp" value="${esc(d.date)}" max="${esc(S.ref.today)}" ${d.otherDate || (!isToday && !isYest) ? '' : 'hidden'} aria-label="${esc(t('date'))}">
         </div>
         <div class="field">
-          <span class="label">${esc(d.type === 'Расход' ? t('payExp') : t('payInc'))}</span>
+          <span class="label">${esc(payTitle(d.type))}</span>
           <div class="chips">${S.ref.pays.map(p => `<button class="chip" type="button" data-pay="${esc(p.ru)}" aria-pressed="${d.pay === p.ru}">${esc(S.lang === 'uz' ? p.uz : p.ru)}</button>`).join('')}</div>
         </div>
+        ${d.type === 'Перевод' ? `<div class="field">
+          <span class="label">${esc(t('payTo'))}</span>
+          <div class="chips">${S.ref.pays.filter(p => p.ru !== d.pay).map(p => `<button class="chip" type="button" data-payto="${esc(p.ru)}" aria-pressed="${d.payTo === p.ru}">${esc(S.lang === 'uz' ? p.uz : p.ru)}</button>`).join('')}</div>
+        </div>` : ''}
         ${showParty && S.ref.parties.length ? `<div class="field">
           <span class="label">${esc(t('party'))} <em>(${esc(t('optional'))})</em></span>
           <div class="chips"><button class="chip" type="button" data-party="" aria-pressed="${!d.party}">${esc(t('none'))}</button>
@@ -636,11 +647,16 @@ function showAmount(){
     keepInputs(); redraw();
   });
   document.getElementById('dateInp').onchange = (e) => { const v = e.target.value; if (v && v <= S.ref.today) d.date = v; else e.target.value = d.date; };
-  $app.querySelectorAll('[data-pay]').forEach(b => b.onclick = () => { d.pay = b.dataset.pay; keepInputs(); redraw(); });
+  $app.querySelectorAll('[data-pay]').forEach(b => b.onclick = () => { d.pay = b.dataset.pay; if (d.payTo === d.pay) d.payTo = ''; keepInputs(); redraw(); });
+  $app.querySelectorAll('[data-payto]').forEach(b => b.onclick = () => { d.payTo = b.dataset.payto; keepInputs(); redraw(); });
   $app.querySelectorAll('[data-party]').forEach(b => b.onclick = () => { d.party = b.dataset.party; keepInputs(); redraw(); });
   document.getElementById('cmt').oninput = (e) => { d.comment = e.target.value; };
   document.getElementById('aChange').onclick = () => { keepInputs(); changeArticle(); };
-  next.onclick = () => { keepInputs(); if (Number(d.digits) > 0 && (!needName() || d.name.trim())) showConfirm(); };
+  next.onclick = () => {
+    keepInputs();
+    if (d.type === 'Перевод' && (!d.payTo || d.payTo === d.pay)) return showError('ERR_PAY_TO', null, showAmount);
+    if (Number(d.digits) > 0 && (!needName() || d.name.trim())) showConfirm();
+  };
 }
 // Новое название сразу появляется в подсказках, без перезапуска приложения
 function rememberName(op){
@@ -657,6 +673,7 @@ function keepInputs(){
   const c = document.getElementById('cmt'), n = document.getElementById('nameInp'), q = document.getElementById('qtyInp');
   if (c) S.draft.comment = c.value; if (n) S.draft.name = n.value; if (q) S.draft.qty = q.value;
 }
+function payTitle(type){ return type === 'Расход' ? t('payExp') : type === 'Перевод' ? t('payFrom') : t('payInc'); }
 function needName(){ return S.draft && S.draft.type === 'Расход'; }
 function qtyNum(q){ const n = Number(String(q || '').replace(',', '.')); return isFinite(n) && n > 0 ? n : 0; }
 function unitLabel(ru){ const u = S.ref.units && S.ref.units.find(x => x.ru === ru); return u ? (S.lang === 'uz' ? u.uz : u.ru) : ru; }
@@ -681,7 +698,8 @@ function showConfirm(){
         ${qtyNum(d.qty) ? `<dt>${esc(t('qty'))}</dt><dd class="num">${esc(String(qtyNum(d.qty)).replace('.', ','))} ${esc(unitLabel(d.unit))} · ${money(amount / qtyNum(d.qty))} ${esc(t('sum'))} ${esc(t('perUnit', { u: unitLabel(d.unit) }))}</dd>` : ''}
         <dt>${esc(t('date'))}</dt><dd>${esc(fmtDate(d.date))}</dd>
         <dt>${esc(catName(a))}</dt><dd>${esc(subName(a))}</dd>
-        <dt>${esc(d.type === 'Расход' ? t('payExp') : t('payInc'))}</dt><dd>${esc(payLabel(d.pay))}</dd>
+        <dt>${esc(payTitle(d.type))}</dt><dd>${esc(payLabel(d.pay))}</dd>
+        ${d.type === 'Перевод' ? `<dt>${esc(t('payTo'))}</dt><dd>${esc(payLabel(d.payTo))}</dd>` : ''}
         ${d.party ? `<dt>${esc(t('party'))}</dt><dd>${esc(d.party)}</dd>` : ''}
         ${d.comment.trim() ? `<dt>${esc(t('comment'))}</dt><dd>${esc(d.comment.trim())}</dd>` : ''}
       </dl>
@@ -698,7 +716,7 @@ function showConfirm(){
     S.busy = true; btn.disabled = true;
     try {
       const op = { id: d.id, type: d.type, cat: d.cat, sub: d.sub, amount, date: d.date,
-        pay: d.pay, party: d.party, comment: d.comment.trim(), name: d.name.trim(),
+        pay: d.pay, payTo: d.type === 'Перевод' ? d.payTo : '', party: d.party, comment: d.comment.trim(), name: d.name.trim(),
         qty: qtyNum(d.qty) ? String(qtyNum(d.qty)) : '', unit: qtyNum(d.qty) ? d.unit : '' };
       if (d.editId) { await api('edit', { id: d.editId, op }, t('saving')); rememberName(op); showEdited(); }
       else { const r = await api('add', { op }, t('saving')); rememberName(op); showSaved(r.duplicate); }
@@ -768,7 +786,7 @@ function renderHistory(){
         return `<div class="item ${c} ${o.cancelled ? 'off' : ''}">
           <div>${o.name ? `<b>${esc(o.name)}</b>${o.qty ? ` · <span class="num">${esc(String(o.qty).replace('.', ','))} ${esc(unitLabel(o.unit))}</span>` : ''}<br><span class="hint">${esc(catLabel(o.type, o.cat))} → ${esc(subLabel(o))}</span>` : `<b>${esc(catLabel(o.type, o.cat))}</b> → ${esc(subLabel(o))}`}</div>
           <div class="s num c-${c}">${o.type === 'Расход' ? '−' : ''}${money(o.sum)}</div>
-          <div class="m">${esc(fmtDate(o.date))} · ${esc(payLabel(o.pay))}${o.party ? ' · ' + esc(o.party) : ''} · ${esc(t('who'))}: ${esc(o.who)}${o.cancelled ? ' · <b>' + esc(t('cancelled')) + '</b>' : ''}</div>
+          <div class="m">${esc(fmtDate(o.date))} · ${esc(payLabel(o.pay))}${o.type === 'Перевод' && o.payTo ? ' → ' + esc(payLabel(o.payTo)) : ''}${o.party ? ' · ' + esc(o.party) : ''} · ${esc(t('who'))}: ${esc(o.who)}${o.cancelled ? ' · <b>' + esc(t('cancelled')) + '</b>' : ''}</div>
           ${o.comment ? `<div class="m">${esc(o.comment)}</div>` : ''}
           ${o.edited ? `<div class="m">${esc(t('editedMark', { w: o.edited }))}</div>` : ''}
           ${(o.canEdit || o.canCancel) ? (S.confirmCancel === o.id
@@ -804,6 +822,28 @@ function periodDates(p){
   if (p === 'month') return [today.slice(0, 8) + '01', today];
   return [S.rep.from || today.slice(0, 8) + '01', S.rep.to || today];
 }
+/* ==========================================================
+   ОСТАТОК СРЕДСТВ (видят все)
+   ========================================================== */
+async function showBalance(){
+  let b;
+  try { b = await api('balance'); } catch (e) { return showError(e.code, showBalance, showHome); }
+  const draw = () => {
+    rerender = draw;
+    screen(t('balance'), `
+      <p class="hint">${esc(t('balOn', { d: fmtDate(b.today) }))}</p>
+      <div class="bal-list">
+        ${b.items.map(x => `<div class="bal-row"><b>${esc(S.lang === 'uz' ? x.uz : x.ru)}</b><span class="num ${x.sum < 0 ? 'c-exp' : ''}">${money(x.sum)} ${esc(t('sum'))}</span></div>`).join('')}
+        <div class="bal-row bal-total"><b>${esc(t('balTotal'))}</b><span class="num">${money(b.total)} ${esc(t('sum'))}</span></div>
+      </div>
+      ${b.items.some(x => x.sum < 0) ? `<div class="warn" role="alert">${esc(t('balNeg'))}</div>` : ''}
+      <p class="hint">${esc(t('balNote'))}</p>
+      <div class="actions"><button class="btn ghost" type="button" id="bHome">${esc(t('home'))}</button></div>`, showHome);
+    document.getElementById('bHome').onclick = showHome;
+  };
+  draw();
+}
+
 async function showReports(){
   const r = S.rep;
   const [from, to] = periodDates(r.period);

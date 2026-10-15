@@ -32,12 +32,12 @@ const STAFF_TYPES = ['Расход', 'Доход'];   // что может за�
 // Колонки листа «Операции»
 const OPS_HEADERS = ['ID', 'Дата', 'Тип', 'Статья', 'Подстатья', 'Сумма', 'Способ оплаты',
   'Контрагент', 'Комментарий', 'Кто внёс', 'Время записи', 'Статус', 'Изменено',
-  'Наименование', 'Количество', 'Ед.'];
+  'Наименование', 'Количество', 'Ед.', 'Куда (для перевода)'];
 
 // Единицы измерения для количества
 const UNITS = [['кг', 'kg'], ['г', 'g'], ['л', 'l'], ['шт', 'dona'], ['пачка', 'pachka'], ['рулон', 'rulon'], ['м', 'm']];
 
-// Колонки листа «Справочники»: статьи A:H, способы оплаты J:K, контрагенты M, пользователи O:Q
+// Колонки листа «Справочники»: статьи A:H, способы оплаты J:K, начальный остаток L, контрагенты M, пользователи O:Q
 const REF_HEADERS = ['Тип', 'Статья', 'Статья (узб)', 'Подстатья', 'Подстатья (узб)',
   'Быстрая плитка №', 'Надпись плитки', 'Надпись плитки (узб)'];
 
@@ -179,6 +179,15 @@ function setup() {
   }
   ops.getRange('G2:G').setDataValidation(
     SpreadsheetApp.newDataValidation().requireValueInRange(ref.getRange('J2:J'), true).setAllowInvalid(false).build());
+  ops.getRange('Q2:Q').setDataValidation(
+    SpreadsheetApp.newDataValidation().requireValueInRange(ref.getRange('J2:J'), true).setAllowInvalid(false).build());
+  ensureHeaders_(ops);
+  // Начальный остаток по каждой кассе (колонка L рядом со способами оплаты) — вписывает руководитель
+  if (String(ref.getRange('L1').getValue()).trim() === '') {
+    ref.getRange('L1').setValue('Остаток на начало учёта, сум').setFontWeight('bold').setBackground('#fff8d6');
+    ref.setColumnWidth(12, 200);
+  }
+  ref.getRange('L2:L').setNumberFormat('#,##0');
 
   // --- Лист «Отчёты» (перезаписывается целиком, только формулы) ---
   const rep = ss.getSheetByName(SHEET_REP) || ss.insertSheet(SHEET_REP);
@@ -282,6 +291,7 @@ function doPost(e) {
       case 'cancel':  data = cancel_(user, req.id); break;
       case 'edit':    data = editOp_(user, req.id, req.op); break;
       case 'report':  data = report_(user, req.from, req.to); break;
+      case 'balance': data = balance_(); break;
       default: throw new Error('ERR_DATA');
     }
     return out_({ ok: true, data: data });
@@ -349,7 +359,7 @@ function readRef_() {
         quick: Number(row[5]) || 0, tile: s(row[6]) || s(row[3]), tileUz: s(row[7]) || s(row[4]) || s(row[6]) || s(row[3])
       });
     }
-    if (s(row[9])) pays.push({ ru: s(row[9]), uz: s(row[10]) || s(row[9]) });
+    if (s(row[9])) pays.push({ ru: s(row[9]), uz: s(row[10]) || s(row[9]), start: Number(row[11]) || 0 });
     if (s(row[12])) parties.push(s(row[12]));
     if (s(row[14])) users.push({ name: s(row[14]), role: s(row[15]) === ROLE_BOSS ? 'boss' : 'staff', pin: s(row[16]) });
   }
@@ -409,16 +419,15 @@ function recentNames_() {
 function ensureCancelFormat_(sh) {
   const formula = '=$L2="' + STATUS_CANCELLED + '"';
   const rules = sh.getConditionalFormatRules();
-  const has = rules.some(r => {
-    const c = r.getBooleanCondition();
-    return c && c.getCriteriaValues && String(c.getCriteriaValues()[0]) === formula;
-  });
-  if (has) return;
+  const width = String.fromCharCode(64 + OPS_HEADERS.length);   // последняя колонка, например Q
+  const same = (r) => { const c = r.getBooleanCondition(); return c && c.getCriteriaValues && String(c.getCriteriaValues()[0]) === formula; };
+  const old = rules.filter(same);
+  if (old.length === 1 && old[0].getRanges && old[0].getRanges()[0].getA1Notation() === 'A2:' + width) return;
   const rule = SpreadsheetApp.newConditionalFormatRule()
     .whenFormulaSatisfied(formula)
     .setBackground('#f4cccc').setFontColor('#990000').setStrikethrough(true)
-    .setRanges([sh.getRange('A2:P')]).build();
-  sh.setConditionalFormatRules(rules.concat([rule]));
+    .setRanges([sh.getRange('A2:' + width)]).build();
+  sh.setConditionalFormatRules(rules.filter(r => !same(r)).concat([rule]));
 }
 
 // Заголовки новых колонок, если таблица создана старой версией
@@ -447,7 +456,7 @@ function addOp_(user, op) {
     ensureHeaders_(sh);
     sh.appendRow([
       id, dateSerial_(v.date), v.type, v.cat, v.sub, v.amount, v.pay,
-      v.party, v.comment, user.name, new Date(), '', '', v.name, v.qty, v.unit
+      v.party, v.comment, user.name, new Date(), '', '', v.name, v.qty, v.unit, v.payTo
     ]);
     SpreadsheetApp.flush();
   } finally {
@@ -471,6 +480,12 @@ function validateOp_(user, op) {
   const ref = readRef_();
   if (!ref.articles.some(a => a.type === type && a.cat === op.cat && a.sub === op.sub)) throw new Error('ERR_ARTICLE');
   if (!ref.pays.some(p => p.ru === op.pay)) throw new Error('ERR_PAY');
+  // Перевод: откуда (pay) → куда (payTo), разные кассы
+  let payTo = '';
+  if (type === 'Перевод') {
+    payTo = String(op.payTo || '');
+    if (!ref.pays.some(p => p.ru === payTo) || payTo === op.pay) throw new Error('ERR_PAY_TO');
+  }
 
   const date = String(op.date || '');
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error('ERR_DATE');
@@ -488,7 +503,7 @@ function validateOp_(user, op) {
   }
 
   return { type: type, cat: op.cat, sub: op.sub, amount: amount, pay: op.pay, date: date,
-    party: safeText_(op.party, 100), comment: safeText_(op.comment, 500), name: name, qty: qty, unit: unit };
+    party: safeText_(op.party, 100), comment: safeText_(op.comment, 500), name: name, qty: qty, unit: unit, payTo: payTo };
 }
 
 // Изменить: руководитель — любую запись, сотрудник — свою. В любое время.
@@ -521,7 +536,7 @@ function editOp_(user, id, op) {
     ensureHeaders_(sh);
     sh.getRange(o.row, 2).setNumberFormat('dd.mm.yyyy');
     sh.getRange(o.row, 2, 1, 8).setValues([[dateSerial_(v.date), v.type, v.cat, v.sub, v.amount, v.pay, v.party, v.comment]]);
-    sh.getRange(o.row, 13, 1, 4).setValues([[user.name + ', ' + Utilities.formatDate(new Date(), TIMEZONE, 'dd.MM.yyyy HH:mm'), v.name, v.qty, v.unit]]);
+    sh.getRange(o.row, 13, 1, 5).setValues([[user.name + ', ' + Utilities.formatDate(new Date(), TIMEZONE, 'dd.MM.yyyy HH:mm'), v.name, v.qty, v.unit, v.payTo]]);
     SpreadsheetApp.flush();
     return { id: o.id };
   } finally {
@@ -544,7 +559,7 @@ function history_(user, filter) {
     res.push({
       id: o.id, date: o.date, type: o.type, cat: o.cat, sub: o.sub, sum: o.sum, pay: o.pay,
       party: o.party, comment: o.comment, who: o.who, created: o.created,
-      cancelled: o.status === STATUS_CANCELLED, edited: o.edited, name: o.name, qty: o.qty, unit: o.unit,
+      cancelled: o.status === STATUS_CANCELLED, edited: o.edited, name: o.name, qty: o.qty, unit: o.unit, payTo: o.payTo,
       canEdit: canEdit_(user, o),
       canCancel: canCancel_(user, o, now)
     });
@@ -571,6 +586,28 @@ function cancel_(user, id) {
   } finally {
     lock.releaseLock();
   }
+}
+
+
+// ===================== ОСТАТОК СРЕДСТВ =====================
+// По каждой кассе: начальный остаток (Справочники, колонка L)
+// + доходы и вложения − расходы; перевод уменьшает кассу «откуда» и увеличивает «куда».
+// Отменённые записи не считаются. Видят все пользователи.
+function balance_() {
+  const ref = readRef_();
+  const map = {}, order = [];
+  const box = (ru) => { if (!map[ru]) { const p = ref.pays.find(x => x.ru === ru); map[ru] = { ru: ru, uz: p ? p.uz : ru, start: p ? p.start : 0, sum: p ? p.start : 0 }; order.push(ru); } return map[ru]; };
+  ref.pays.forEach(p => box(p.ru));
+  let last = '';
+  readOps_(0).forEach(o => {
+    if (o.status === STATUS_CANCELLED || !o.pay) return;
+    if (o.type === 'Доход' || o.type === 'Вложение') box(o.pay).sum += o.sum;
+    else if (o.type === 'Расход') box(o.pay).sum -= o.sum;
+    else if (o.type === 'Перевод') { box(o.pay).sum -= o.sum; if (o.payTo) box(o.payTo).sum += o.sum; }
+    if (o.date > last) last = o.date;
+  });
+  const items = order.map(k => map[k]);
+  return { items: items, total: items.reduce((a, x) => a + x.sum, 0), lastDate: last, today: today_() };
 }
 
 
@@ -671,7 +708,7 @@ function readOps_(limit) {
       type: s(r[2]), cat: s(r[3]), sub: s(r[4]), sum: Number(r[5]) || 0, pay: s(r[6]),
       party: s(r[7]), comment: s(r[8]), who: s(r[9]),
       created: r[10] instanceof Date ? r[10].getTime() : 0, status: s(r[11]), edited: s(r[12]),
-      name: s(r[13]), qty: r[14] === '' || r[14] === null ? '' : Number(r[14]), unit: s(r[15])
+      name: s(r[13]), qty: r[14] === '' || r[14] === null ? '' : Number(r[14]), unit: s(r[15]), payTo: s(r[16])
     });
   });
   return out;
