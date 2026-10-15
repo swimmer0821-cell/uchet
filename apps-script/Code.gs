@@ -224,7 +224,7 @@ function buildReportSheet_(rep) {
   rep.getRange('C6:C10').setNumberFormat('#,##0').setFontWeight('bold');
 
   const byCat = (type, catCol, totalCell) =>
-    `=ARRAYFORMULA(IF(${catCol}14:${catCol}60="","",SUMIFS(${SHEET_OPS}!$F:$F,${SHEET_OPS}!$C:$C,"${type}",${SHEET_OPS}!$D:$D,${catCol}14:${catCol}60,${SHEET_OPS}!$B:$B,">="&$C$3,${SHEET_OPS}!$B:$B,"<="&$C$4,${SHEET_OPS}!$L:$L,"<>${STATUS_CANCELLED}")))`;
+    `=MAP(${catCol}14:${catCol}60,LAMBDA(k,IF(k="","",SUMIFS(${SHEET_OPS}!$F:$F,${SHEET_OPS}!$C:$C,"${type}",${SHEET_OPS}!$D:$D,k,${SHEET_OPS}!$B:$B,">="&$C$3,${SHEET_OPS}!$B:$B,"<="&$C$4,${SHEET_OPS}!$L:$L,"<>${STATUS_CANCELLED}"))))`;
 
   rep.getRange('A12').setValue('Расходы по статьям').setFontWeight('bold');
   rep.getRange('A13:C13').setValues([['Статья', 'Сумма', 'Доля']]).setFontWeight('bold');
@@ -242,7 +242,7 @@ function buildReportSheet_(rep) {
   rep.getRange('I13:K13').setValues([['Способ', 'Расход', 'Доход']]).setFontWeight('bold');
   setF_(rep, 'I14', `=FILTER(${SHEET_REF}!$J$2:$J,${SHEET_REF}!$J$2:$J<>"")`);
   const byPay = (type) =>
-    `=ARRAYFORMULA(IF(I14:I30="","",SUMIFS(${SHEET_OPS}!$F:$F,${SHEET_OPS}!$C:$C,"${type}",${SHEET_OPS}!$G:$G,I14:I30,${SHEET_OPS}!$B:$B,">="&$C$3,${SHEET_OPS}!$B:$B,"<="&$C$4,${SHEET_OPS}!$L:$L,"<>${STATUS_CANCELLED}")))`;
+    `=MAP(I14:I30,LAMBDA(k,IF(k="","",SUMIFS(${SHEET_OPS}!$F:$F,${SHEET_OPS}!$C:$C,"${type}",${SHEET_OPS}!$G:$G,k,${SHEET_OPS}!$B:$B,">="&$C$3,${SHEET_OPS}!$B:$B,"<="&$C$4,${SHEET_OPS}!$L:$L,"<>${STATUS_CANCELLED}"))))`;
   setF_(rep, 'J14', byPay('Расход'));
   setF_(rep, 'K14', byPay('Доход'));
 
