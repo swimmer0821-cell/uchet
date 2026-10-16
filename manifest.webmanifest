@@ -3,7 +3,7 @@
   "short_name": "Деньги",
   "description": "Расходы, доходы и остаток денег SUB PROFI",
   "lang": "ru",
-  "id": "./",
+  "id": "/uchet/",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
