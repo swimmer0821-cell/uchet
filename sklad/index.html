@@ -1,0 +1,583 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#5c2e08">
+<title>Склад SUB PROFI</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Склад">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<script>
+/* ==========================================================
+   НАСТРОЙКИ — меняйте только этот блок
+   ========================================================== */
+const CONFIG = {
+  // Адрес веб-приложения Apps Script таблицы склада (заканчивается на /exec):
+  API_URL: 'ВСТАВЬТЕ_АДРЕС_/exec',
+  // Сколько секунд ждать ответа сервера
+  TIMEOUT_SEC: 40
+};
+</script>
+<style>
+:root{
+  --bg:#ffffff; --ink:#1b120b; --muted:#5a4d43; --line:#c9bdb2; --soft:#f4efea;
+  --bar:#5c2e08; --bar-ink:#ffffff;
+  --in:#156b34; --in-bg:#e2f4e8; --prod:#2c4d73; --prod-bg:#e6edf6;
+  --out:#a4161a; --out-bg:#fde9e8; --brak:#6b1f5c; --brak-bg:#f6e6f2;
+  --warn:#7a4b00; --warn-bg:#fff1cc; --focus:#f2b705;
+  --r:14px; color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;min-height:100%}
+body{background:var(--bg);color:var(--ink);font:400 19px/1.4 Roboto,"Segoe UI",system-ui,-apple-system,sans-serif;-webkit-tap-highlight-color:transparent}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:4px solid var(--focus);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+
+.top{position:sticky;top:0;z-index:5;background:var(--bar);color:var(--bar-ink);display:flex;align-items:center;gap:12px;padding:10px 16px;padding-top:calc(10px + env(safe-area-inset-top,0px));min-height:68px}
+.top h1{font-size:20px;margin:0;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tbtn{background:transparent;border:2px solid rgba(255,255,255,.6);color:var(--bar-ink);border-radius:10px;min-height:48px;min-width:60px;padding:6px 14px;font-weight:600;font-size:17px}
+main{padding:16px;padding-bottom:calc(32px + env(safe-area-inset-bottom,0px));max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+h2{font-size:24px;margin:4px 0 0}
+.hint{color:var(--muted);font-size:17px;margin:0}
+
+/* Главный экран */
+.home{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+.big{border:3px solid var(--line);border-radius:var(--r);background:var(--soft);min-height:130px;padding:18px;text-align:left;display:flex;flex-direction:column;justify-content:flex-end;gap:4px}
+.big b{font-size:28px} .big span{font-size:17px;color:var(--muted)}
+.big.in{background:var(--in-bg);border-color:var(--in);color:var(--in)}
+.big.prod{background:var(--prod-bg);border-color:var(--prod);color:var(--prod)}
+.big.out{background:var(--out-bg);border-color:var(--out);color:var(--out)}
+.big.brak{background:var(--brak-bg);border-color:var(--brak);color:var(--brak)}
+.big.small{min-height:96px}
+.big span.alert{color:var(--out);font-weight:700}
+
+/* Поля формы */
+.form{display:flex;flex-direction:column;gap:18px}
+.field{display:flex;flex-direction:column;gap:8px}
+.label{font-weight:700;font-size:18px}
+.label em{font-style:normal;font-weight:400;color:var(--muted)}
+.txt{width:100%;min-height:60px;border:2px solid var(--line);border-radius:12px;padding:10px 14px;font-size:20px;background:var(--bg)}
+.txt.req{border-color:var(--out)}
+input[type=date].txt{max-width:260px}
+.qty{display:flex;gap:12px;align-items:center}
+.qty .txt{max-width:220px;font-size:26px;font-weight:700;text-align:right}
+.qty span{font-size:20px;color:var(--muted)}
+.pick{width:100%;min-height:64px;border:2px solid var(--line);border-radius:12px;padding:10px 14px;background:var(--soft);text-align:left;font-size:20px;font-weight:600;display:flex;justify-content:space-between;gap:10px;align-items:center}
+.pick small{font-weight:400;color:var(--muted);font-size:16px}
+.pick.empty{color:var(--muted);font-weight:400;border-style:dashed}
+.pick.req{border-color:var(--out)}
+.chips{display:flex;flex-wrap:wrap;gap:10px}
+.chip{min-height:56px;min-width:56px;padding:8px 16px;border:2px solid var(--line);border-radius:12px;background:var(--bg);font-size:17px;font-weight:600;text-align:left}
+.chip small{display:block;font-weight:400;font-size:14px;color:var(--muted)}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chip[aria-pressed="true"] small{color:#e8ddd3}
+.need{color:var(--out);font-weight:600;margin:0}
+
+.actions{display:flex;flex-wrap:wrap;gap:12px}
+.btn{min-height:64px;padding:12px 24px;border-radius:var(--r);border:3px solid var(--ink);background:var(--ink);color:var(--bg);font-size:21px;font-weight:700;flex:1 1 200px}
+.btn.ghost{background:var(--bg);color:var(--ink)}
+.btn.in{background:var(--in);border-color:var(--in)} .btn.prod{background:var(--prod);border-color:var(--prod)}
+.btn.out{background:var(--out);border-color:var(--out)} .btn.brak{background:var(--brak);border-color:var(--brak)}
+.btn:disabled{background:var(--soft);color:var(--muted);border-color:var(--line);cursor:not-allowed}
+
+.card{border:3px solid var(--line);border-radius:var(--r);padding:18px;display:flex;flex-direction:column;gap:6px}
+.rows{margin:0} .rows dt{color:var(--muted);font-size:16px;margin-top:8px} .rows dd{margin:0;font-weight:700;font-size:21px;overflow-wrap:anywhere}
+.warn{background:var(--warn-bg);color:var(--warn);border:2px solid var(--warn);border-radius:12px;padding:14px;font-weight:600}
+.result{border-radius:var(--r);padding:22px 20px;display:flex;flex-direction:column;gap:8px}
+.result b{font-size:30px}
+.result pre{margin:0;font:inherit;white-space:pre-wrap;overflow-wrap:anywhere}
+.result.ok{background:var(--in-bg);color:var(--in);border:3px solid var(--in)}
+.result.bad{background:var(--out-bg);color:var(--out);border:3px solid var(--out)}
+.result pre .w{color:var(--warn);font-weight:700}
+
+/* Списки */
+.list{display:flex;flex-direction:column;gap:10px}
+.item{border:2px solid var(--line);border-left-width:10px;border-radius:12px;padding:12px 14px;display:grid;grid-template-columns:1fr auto;gap:2px 12px;background:var(--bg);text-align:left;width:100%}
+.item .n{font-weight:700;font-size:19px;min-width:0;overflow-wrap:anywhere}
+.item .q{font-size:22px;font-weight:800;text-align:right;white-space:nowrap}
+.item .m{color:var(--muted);font-size:16px;grid-column:1/-1}
+.item.ok{border-left-color:#9fcfae} .item.zero{border-left-color:var(--line);opacity:.7}
+.item.bad{border-left-color:var(--out)} .item.warn{border-left-color:#e0a800}
+.item.k-in{border-left-color:var(--in)} .item.k-prod{border-left-color:var(--prod)} .item.k-out{border-left-color:var(--out)}
+.badge{display:inline-block;border-radius:8px;padding:2px 8px;font-weight:700;font-size:15px}
+.badge.bad{background:var(--out-bg);color:var(--out)} .badge.warn{background:var(--warn-bg);color:var(--warn)}
+.empty{border:2px dashed var(--line);border-radius:var(--r);padding:24px;text-align:center;color:var(--muted)}
+.check{display:flex;justify-content:space-between;gap:12px;border:2px solid var(--line);border-radius:12px;padding:14px 16px;align-items:center}
+.check b{font-size:26px;min-width:2ch;text-align:right}
+.check.bad{border-color:var(--out);background:var(--out-bg);color:var(--out)}
+.scroll-x{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px} .scroll-x .chip{flex:none}
+.foot{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;color:var(--muted);font-size:17px;border-top:2px solid var(--soft);padding-top:12px}
+.linkbtn{background:none;border:0;padding:8px 0;color:var(--ink);text-decoration:underline;font-size:17px;min-height:48px}
+
+.loader{position:fixed;inset:0;background:rgba(27,18,11,.45);display:flex;align-items:center;justify-content:center;z-index:20}
+.loader div{background:var(--bg);border-radius:var(--r);padding:24px 32px;display:flex;align-items:center;gap:16px;font-size:21px;font-weight:600}
+.spin{width:36px;height:36px;border:5px solid var(--soft);border-top-color:var(--ink);border-radius:50%;animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation-duration:3s}}
+</style>
+</head>
+<body>
+<header class="top">
+  <button class="tbtn" id="backBtn" type="button" hidden>Назад</button>
+  <h1 id="title">Склад SUB PROFI</h1>
+  <button class="tbtn" id="refreshBtn" type="button" hidden aria-label="Обновить">↻</button>
+</header>
+<main id="app" aria-live="polite"></main>
+<div class="loader" id="loader" hidden><div><span class="spin" aria-hidden="true"></span><span id="loaderText">Загрузка…</span></div></div>
+
+<script>
+/* ==========================================================
+   СОСТОЯНИЕ И ПОМОЩНИКИ
+   ========================================================== */
+const S = { user: load('user') || '', pin: load('pin') || '', ref: null, stock: null, stockAt: 0,
+  f: null, back: null, refresh: null, last: JSON.parse(load('last') || 'null'),
+  st: { q: '', group: '', problems: false }, expDays: 30 };
+
+const KINDS = {
+  in:   { title: 'Приход',  cls: 'in',   sub: 'Закупка сырья, упаковки, возврат' },
+  prod: { title: 'Выпуск',  cls: 'prod', sub: 'Сублимация или фасовка' },
+  out:  { title: 'Расход',  cls: 'out',  sub: 'Отгрузка, продажа, образец, потеря' },
+  brak: { title: 'Брак',    cls: 'brak', sub: 'Списать брак с причиной' }
+};
+const PRODUCT_GROUPS = ['Сублимат (кг)', 'ГП опт (кг)', 'ГП фасованная (шт)'];
+const RAW_GROUPS = ['Сырьё', 'Сублимат (кг)', 'ГП опт (кг)'];
+const REASON_REQUIRED = ['Потеря/усушка', 'Списание (срок)'];
+
+function load(k){ try { return localStorage.getItem('sklad_' + k); } catch(e){ return null; } }
+function store(k, v){ try { v == null ? localStorage.removeItem('sklad_' + k) : localStorage.setItem('sklad_' + k, v); } catch(e){} }
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fmtNum(n){ if (n === '' || n == null) return ''; const v = Math.round(Number(n) * 1000) / 1000; const [a, b] = String(Math.abs(v)).split('.');
+  return (v < 0 ? '−' : '') + a.replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + (b ? ',' + b : ''); }
+function parseNum(s){ const v = parseFloat(String(s || '').replace(/\s/g, '').replace(',', '.')); return isNaN(v) ? null : v; }
+function todayIso(){ const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function isoToRu(s){ if (!s) return ''; const [y, m, d] = s.split('-'); return d + '.' + m + '.' + y; }
+function item(name){ return S.ref && S.ref.items.find(i => i.name === name); }
+function stockOf(name){ return S.stock && S.stock.find(x => x.name === name); }
+function unitOf(name){ const i = item(name); return i ? i.unit : ''; }
+function statusClass(s){ s = String(s || ''); return s.indexOf('⛔') >= 0 ? 'bad' : s.indexOf('⚠') >= 0 ? 'warn' : s === 'нет в наличии' ? 'zero' : 'ok'; }
+const $app = document.getElementById('app');
+
+/* ==========================================================
+   ОБМЕН С СЕРВЕРОМ (Apps Script таблицы склада)
+   ========================================================== */
+async function api(action, extra, loadingText){
+  if (!CONFIG.API_URL || CONFIG.API_URL.indexOf('ВСТАВЬТЕ') === 0) throw new Error('В приложении не указан адрес сервера склада (API_URL). Сообщите руководителю.');
+  showLoader(true, loadingText);
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), CONFIG.TIMEOUT_SEC * 1000);
+  try {
+    const body = Object.assign({ app: 'sklad', action, user: S.user, pin: S.pin }, extra || {});
+    let res;
+    try {
+      res = await fetch(CONFIG.API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(body), signal: ctrl.signal, redirect: 'follow' });
+    } catch (e) { throw new Error('Нет связи с интернетом или сервер не ответил. Проверьте интернет и попробуйте ещё раз.'); }
+    let j;
+    try { j = await res.json(); } catch (e) { throw new Error('Сервер склада ответил непонятно. Попробуйте ещё раз через минуту.'); }
+    if (!j.ok) { const err = new Error(j.error || 'Ошибка'); err.server = true; throw err; }
+    return j.data;
+  } finally { clearTimeout(timer); showLoader(false); }
+}
+function showLoader(on, text){ document.getElementById('loader').hidden = !on; document.getElementById('loaderText').textContent = text || 'Загрузка…'; }
+async function loadStock(force){
+  if (!force && S.stock && Date.now() - S.stockAt < 120000) return S.stock;
+  S.stock = await api('stock', null, 'Загружаю остатки…'); S.stockAt = Date.now(); return S.stock;
+}
+
+/* ==========================================================
+   ЭКРАН
+   ========================================================== */
+function screen(title, html, backFn, refreshFn){
+  document.getElementById('title').textContent = title;
+  S.back = backFn || null; S.refresh = refreshFn || null;
+  document.getElementById('backBtn').hidden = !backFn;
+  document.getElementById('refreshBtn').hidden = !refreshFn;
+  $app.innerHTML = html;
+  window.scrollTo(0, S.keepScroll || 0); S.keepScroll = 0;
+  const f = $app.querySelector('[data-autofocus]'); if (f) f.focus();
+}
+document.getElementById('backBtn').onclick = () => { if (S.back) S.back(); };
+document.getElementById('refreshBtn').onclick = () => { if (S.refresh) S.refresh(); };
+function on(sel, ev, fn){ $app.querySelectorAll(sel).forEach(el => el.addEventListener(ev, fn)); }
+function errorScreen(e, retry, back){
+  screen('Ошибка', `<div class="result bad" role="alert"><b>Не получилось</b><pre>${esc(e.message || e)}</pre></div>
+    <div class="actions">${retry ? '<button class="btn" id="retry" type="button">Повторить</button>' : ''}
+    <button class="btn ghost" id="home" type="button">На главную</button></div>`, back || showHome);
+  if (retry) document.getElementById('retry').onclick = retry;
+  document.getElementById('home').onclick = showHome;
+}
+
+/* ==========================================================
+   ВХОД
+   ========================================================== */
+async function start(){
+  if (!S.user || !S.pin) return showLogin();
+  try { const d = await api('login', null, 'Вход…'); S.ref = d.ref; showHome(); }
+  catch (e) { if (e.server) showLogin(e.message); else errorScreen(e, start, null); }
+}
+function showLogin(msg){
+  screen('Склад SUB PROFI', `
+    <h2>Вход</h2>
+    <p class="hint">Один раз на этом телефоне. ПИН-код тот же, что у складского бота — спросите у руководителя.</p>
+    ${msg ? `<div class="warn" role="alert">${esc(msg)}</div>` : ''}
+    <form class="form" id="lf">
+      <label class="field"><span class="label">Ваше имя</span>
+        <input class="txt" id="ln" autocomplete="name" value="${esc(S.user)}" placeholder="Например: Шахноза" required ${S.user ? '' : 'data-autofocus'}></label>
+      <label class="field"><span class="label">ПИН-код</span>
+        <input class="txt" id="lp" type="password" inputmode="numeric" autocomplete="current-password" required ${S.user ? 'data-autofocus' : ''}></label>
+      <div class="actions"><button class="btn" type="submit">Войти</button></div>
+    </form>`);
+  document.getElementById('lf').onsubmit = async ev => {
+    ev.preventDefault();
+    const name = document.getElementById('ln').value.trim(), pin = document.getElementById('lp').value.trim();
+    if (name.length < 2 || !pin) return;
+    S.user = name; S.pin = pin;
+    try { const d = await api('login', null, 'Вход…'); S.ref = d.ref; S.user = d.name; store('user', S.user); store('pin', S.pin); showHome(); }
+    catch (e) { S.pin = ''; showLogin(e.message); }
+  };
+}
+function logout(){ store('pin', null); S.pin = ''; S.ref = null; S.stock = null; showLogin(); }
+
+/* ==========================================================
+   ГЛАВНЫЙ ЭКРАН
+   ========================================================== */
+function undoLeft(){ if (!S.last) return 0; const m = (S.ref ? S.ref.undoMin : 15) - (Date.now() - S.last.at) / 60000; return m > 0 ? Math.ceil(m) : 0; }
+function showHome(){
+  S.f = null;
+  const left = undoLeft();
+  screen('Склад SUB PROFI', `
+    <h2>Здравствуйте, ${esc(S.user)}</h2>
+    <div class="home">
+      ${Object.keys(KINDS).map(k => `<button class="big ${KINDS[k].cls}" type="button" data-k="${k}"><b>${KINDS[k].title}</b><span>${KINDS[k].sub}</span></button>`).join('')}
+    </div>
+    <div class="home">
+      <button class="big small" type="button" id="hStock"><b>Остатки</b><span>Что есть на складе, партии</span></button>
+      <button class="big small" type="button" id="hExp"><b>Сроки</b><span>Партии, которые скоро истекут</span></button>
+      <button class="big small" type="button" id="hChk"><b>Проверки</b><span>Минусы, просрочка, ниже минимума</span></button>
+      <button class="big small" type="button" id="hHist"><b>История</b><span>Последние записи склада</span></button>
+    </div>
+    ${left ? `<div class="card"><span class="hint">Ваша последняя запись: ${esc(S.last.what)}</span>
+      <div class="actions"><button class="btn ghost" id="hUndo" type="button">Отменить её (ещё ${left} мин)</button></div></div>` : ''}
+    <div class="foot"><span>Вы вошли как ${esc(S.user)}</span><button class="linkbtn" id="hOut" type="button">Сменить пользователя</button></div>`, null, null);
+  on('[data-k]', 'click', e => startForm(e.currentTarget.dataset.k));
+  document.getElementById('hStock').onclick = () => showStock();
+  document.getElementById('hExp').onclick = () => showExpiry();
+  document.getElementById('hChk').onclick = () => showChecks();
+  document.getElementById('hHist').onclick = () => showHistory();
+  document.getElementById('hOut').onclick = logout;
+  const u = document.getElementById('hUndo'); if (u) u.onclick = askUndo;
+}
+
+/* ==========================================================
+   ФОРМЫ: приход, выпуск, расход, брак
+   ========================================================== */
+async function startForm(kind){
+  const v = {};
+  if (kind === 'in') { v.type = 'Закупка'; v.date = todayIso(); }
+  if (kind === 'out') v.type = (S.ref.typesOut.indexOf('Отгрузка дистрибьютору') >= 0 ? 'Отгрузка дистрибьютору' : S.ref.typesOut[0]);
+  S.f = { kind, v, tried: false };
+  try { await loadStock(); } catch (e) { /* остатки — только подсказка, форма работает и без них */ }
+  showForm();
+}
+
+function fieldItem(key, label, hint){
+  const v = S.f.v[key], st = v && stockOf(v);
+  const bad = S.f.tried && !v;
+  return `<div class="field"><span class="label">${label}</span>
+    <button class="pick ${v ? '' : 'empty'} ${bad ? 'req' : ''}" type="button" data-pick="${key}">
+      <span>${v ? esc(v) : esc(hint || 'Выбрать из справочника')}</span>${st ? `<small class="num">есть ${fmtNum(st.qty)} ${esc(st.unit)}</small>` : '<small>▸</small>'}</button></div>`;
+}
+function fieldQty(key, label, unit, optional){
+  const v = S.f.v[key] || '', bad = S.f.tried && !optional && !(parseNum(v) > 0);
+  return `<label class="field"><span class="label">${label}${optional ? ' <em>(необязательно)</em>' : ''}</span>
+    <span class="qty"><input class="txt num ${bad ? 'req' : ''}" inputmode="decimal" data-f="${key}" value="${esc(v)}" autocomplete="off"><span>${esc(unit || '')}</span></span></label>`;
+}
+function fieldText(key, label, opts){
+  opts = opts || {};
+  const v = S.f.v[key] || '', bad = S.f.tried && opts.req && !v.trim();
+  return `<label class="field"><span class="label">${label}${opts.req ? '' : ' <em>(необязательно)</em>'}</span>
+    <input class="txt ${bad ? 'req' : ''}" data-f="${key}" value="${esc(v)}" placeholder="${esc(opts.ph || '')}" autocomplete="off">
+    ${opts.hint ? `<span class="hint">${esc(opts.hint)}</span>` : ''}</label>`;
+}
+function fieldChips(key, label, list){
+  return `<div class="field"><span class="label">${label}</span><div class="chips">
+    ${list.map(x => `<button class="chip" type="button" data-chip="${key}" data-val="${esc(x)}" aria-pressed="${S.f.v[key] === x}">${esc(x)}</button>`).join('')}</div></div>`;
+}
+function fieldBatch(key, itemKey, label){
+  const it = S.f.v[itemKey];
+  if (!it) return '';
+  const cur = S.f.v[key] || '';
+  return `<div class="field"><span class="label">${label}</span>
+    <button class="pick" type="button" data-batch="${key}" data-of="${itemKey}">
+      <span>${cur ? 'Партия ' + esc(cur) : 'Авто — сначала ближайший срок (FEFO)'}</span><small>изменить ▸</small></button></div>`;
+}
+
+function formFields(){
+  const k = S.f.kind, v = S.f.v;
+  const isPack = v.item && item(v.item) && item(v.item).group === 'Упаковка';
+  if (k === 'in') return fieldChips('type', 'Тип прихода', S.ref.typesIn) +
+    fieldItem('item', 'Что пришло') + fieldQty('qty', 'Количество', unitOf(v.item)) +
+    fieldText('batch', 'Номер партии', { req: !isPack, ph: 'Например: С-5', hint: isPack ? 'Для упаковки партию можно не указывать.' : '' }) +
+    (isPack ? '' : `<label class="field"><span class="label">Дата производства</span><input class="txt" type="date" data-f="date" value="${esc(v.date || '')}" max="${todayIso()}">
+      <span class="hint">От неё таблица посчитает срок годности.</span></label>`) +
+    fieldText('from', 'Поставщик / откуда', { ph: 'Например: Деревенское' });
+  if (k === 'prod') return fieldItem('item', 'Что получили', 'Готовый продукт или сублимат') +
+    fieldQty('qty', 'Сколько получили', unitOf(v.item)) +
+    fieldText('batch', 'Номер партии продукта', { req: true, ph: 'Например: С-5' }) +
+    fieldItem('raw', 'Из чего сделали', 'Сырьё или сублимат') +
+    fieldQty('rawQty', 'Сколько ушло', unitOf(v.raw)) +
+    fieldBatch('rawBatch', 'raw', 'Партия сырья') +
+    fieldQty('brak', 'Брак при производстве', 'кг', true);
+  if (k === 'out') return fieldChips('type', 'Тип расхода', S.ref.typesOut) +
+    fieldItem('item', 'Что уходит') + fieldQty('qty', 'Количество', unitOf(v.item)) +
+    fieldText('reason', REASON_REQUIRED.indexOf(v.type) >= 0 ? 'Причина' : 'Кому / причина', { req: REASON_REQUIRED.indexOf(v.type) >= 0, ph: 'Например: Баходыр' }) +
+    fieldBatch('batch', 'item', 'Партия');
+  if (k === 'brak') return fieldItem('item', 'Что бракуем') + fieldQty('qty', 'Количество', unitOf(v.item)) +
+    fieldText('reason', 'Причина брака', { req: true, ph: 'Например: помята упаковка' }) +
+    fieldBatch('batch', 'item', 'Партия');
+}
+
+function formErrors(){
+  const k = S.f.kind, v = S.f.v, e = [];
+  if (!v.item) e.push('выберите товар');
+  if (!(parseNum(v.qty) > 0)) e.push('укажите количество');
+  const it = v.item && item(v.item);
+  if (k === 'in' && it && it.group !== 'Упаковка' && !String(v.batch || '').trim()) e.push('укажите номер партии');
+  if (k === 'prod') {
+    if (!String(v.batch || '').trim()) e.push('укажите партию продукта');
+    if (!v.raw) e.push('выберите, из чего сделали');
+    if (!(parseNum(v.rawQty) > 0)) e.push('укажите, сколько сырья ушло');
+    if (v.brak && !(parseNum(v.brak) > 0)) e.push('брак — число больше нуля или пусто');
+    if (v.raw && v.raw === v.item) e.push('продукт и сырьё совпадают');
+  }
+  if ((k === 'brak' || (k === 'out' && REASON_REQUIRED.indexOf(v.type) >= 0)) && !String(v.reason || '').trim()) e.push('напишите причину');
+  return e;
+}
+
+function showForm(){
+  const K = KINDS[S.f.kind], errs = S.f.tried ? formErrors() : [];
+  screen(K.title, `<form class="form" id="ff" novalidate>${formFields()}
+    ${errs.length ? `<p class="need" role="alert">Нужно: ${esc(errs.join(', '))}.</p>` : ''}
+    <div class="actions"><button class="btn ${K.cls}" type="submit">Далее</button></div></form>`, showHome);
+  on('[data-f]', 'input', e => { S.f.v[e.target.dataset.f] = e.target.value; });
+  on('[data-chip]', 'click', e => { readInputs(); S.f.v[e.currentTarget.dataset.chip] = e.currentTarget.dataset.val; keep(); showForm(); });
+  on('[data-pick]', 'click', e => { readInputs(); openPicker(e.currentTarget.dataset.pick); });
+  on('[data-batch]', 'click', e => { readInputs(); openBatch(e.currentTarget.dataset.batch, e.currentTarget.dataset.of); });
+  document.getElementById('ff').onsubmit = ev => { ev.preventDefault(); readInputs(); S.f.tried = true;
+    if (formErrors().length) { keep(); return showForm(); } showConfirm(); };
+}
+function readInputs(){ $app.querySelectorAll('[data-f]').forEach(el => S.f.v[el.dataset.f] = el.value); }
+function keep(){ S.keepScroll = window.scrollY; }
+
+/* Выбор товара из справочника */
+function openPicker(key){
+  const k = S.f.kind;
+  const allowed = k === 'prod' ? (key === 'item' ? PRODUCT_GROUPS : RAW_GROUPS) : S.ref.groups;
+  const P = { q: '', group: '' };
+  if (k === 'in' && !S.f.v[key]) P.group = 'Сырьё';
+  const back = () => { keep(); showForm(); };
+  const draw = () => {
+    const words = P.q.toLowerCase().split(/\s+/).filter(Boolean);
+    let list = S.ref.items.filter(i => allowed.indexOf(i.group) >= 0 && (!P.group || i.group === P.group) &&
+      words.every(w => (i.name + ' ' + i.code).toLowerCase().indexOf(w) >= 0));
+    // для расхода и выпуска сырья — сначала то, что есть на складе
+    if (S.stock && (k === 'out' || k === 'brak' || key === 'raw')) list.sort((a, b) => ((stockOf(b.name) || {}).qty > 0) - ((stockOf(a.name) || {}).qty > 0));
+    const shown = list.slice(0, 80);
+    screen('Выберите товар', `
+      <input class="txt" id="pq" type="search" placeholder="Поиск: часть названия или код" value="${esc(P.q)}" autocomplete="off" data-autofocus>
+      <div class="scroll-x">${['', ...allowed].map(g => `<button class="chip" type="button" data-g="${esc(g)}" aria-pressed="${P.group === g}">${g ? esc(g) : 'Все'}</button>`).join('')}</div>
+      <div class="list">${shown.map(i => { const st = stockOf(i.name);
+        return `<button class="item ${st ? statusClass(st.status) : 'ok'}" type="button" data-name="${esc(i.name)}">
+          <span class="n">${esc(i.name)}</span><span class="q num">${st ? fmtNum(st.qty) + ' ' + esc(i.unit) : esc(i.unit)}</span>
+          <span class="m">${esc(i.code)} · ${esc(i.group)}</span></button>`; }).join('') || '<div class="empty">Ничего не найдено</div>'}
+      ${list.length > shown.length ? `<p class="hint">Показано ${shown.length} из ${list.length}. Уточните поиск.</p>` : ''}</div>`, back);
+    const q = document.getElementById('pq');
+    q.oninput = () => { P.q = q.value; const pos = q.selectionStart; draw(); const n = document.getElementById('pq'); n.focus(); try { n.setSelectionRange(pos, pos); } catch(e){} };
+    on('[data-g]', 'click', e => { P.group = e.currentTarget.dataset.g; draw(); });
+    on('[data-name]', 'click', e => {
+      const name = e.currentTarget.dataset.name;
+      if (S.f.v[key] !== name) { if (key === 'item') S.f.v.batch = S.f.kind === 'in' || S.f.kind === 'prod' ? S.f.v.batch : ''; if (key === 'raw') S.f.v.rawBatch = ''; }
+      S.f.v[key] = name; back();
+    });
+  };
+  draw();
+}
+
+/* Выбор партии (по умолчанию — FEFO) */
+async function openBatch(key, itemKey){
+  const name = S.f.v[itemKey];
+  let d;
+  try { d = await api('batches', { item: name }, 'Загружаю партии…'); }
+  catch (e) { return errorScreen(e, () => openBatch(key, itemKey), () => showForm()); }
+  const cur = S.f.v[key] || '';
+  screen('Партия', `
+    <h2>${esc(d.item)}</h2>
+    <p class="hint">Обычно выбирать не нужно: «Авто» списывает с партии с ближайшим сроком годности (FEFO).</p>
+    <div class="list">
+      <button class="item ok" type="button" data-b=""><span class="n">Авто — сначала ближайший срок</span><span class="q">${cur ? '' : '✓'}</span></button>
+      ${d.batches.map((b, i) => `<button class="item ${b.days !== '' && b.days < 0 ? 'bad' : b.days !== '' && b.days <= 30 ? 'warn' : 'ok'}" type="button" data-b="${esc(b.batch)}">
+        <span class="n">Партия ${esc(b.batch || 'без номера')}${i === 0 ? ' · первая по FEFO' : ''}</span>
+        <span class="q num">${fmtNum(b.left)} ${esc(d.unit)} ${cur === b.batch ? '✓' : ''}</span>
+        <span class="m">${b.exp ? 'годен до ' + esc(b.exp) + (b.days !== '' ? ' (' + (b.days < 0 ? 'просрочена' : b.days + ' дн') + ')' : '') : 'срок не указан'}</span></button>`).join('')}
+      ${d.batches.length ? '' : '<div class="empty">Партий с остатком нет</div>'}
+    </div>`, () => showForm());
+  on('[data-b]', 'click', e => { S.f.v[key] = e.currentTarget.dataset.b; showForm(); });
+}
+
+/* Проверка перед записью */
+function showConfirm(){
+  const k = S.f.kind, v = S.f.v, K = KINDS[k], rows = [];
+  const add = (a, b) => { if (b !== '' && b != null) rows.push(`<dt>${esc(a)}</dt><dd>${esc(b)}</dd>`); };
+  if (k === 'in' || k === 'out') add('Тип', v.type);
+  add(k === 'prod' ? 'Получили' : 'Товар', v.item);
+  add('Количество', fmtNum(parseNum(v.qty)) + ' ' + unitOf(v.item));
+  if (k === 'in') { add('Партия', v.batch); add('Дата производства', isoToRu(v.date)); add('Откуда', v.from); }
+  if (k === 'prod') { add('Партия продукта', v.batch); add('Из чего', v.raw); add('Ушло', fmtNum(parseNum(v.rawQty)) + ' ' + unitOf(v.raw));
+    add('Партия сырья', v.rawBatch || 'авто (FEFO)'); if (v.brak) add('Брак', fmtNum(parseNum(v.brak)) + ' кг'); }
+  if (k === 'out' || k === 'brak') { add(k === 'brak' ? 'Причина' : 'Кому / причина', v.reason); add('Партия', v.batch || 'авто (FEFO)'); }
+  const st = stockOf(v.item), q = parseNum(v.qty);
+  let warn = '';
+  if ((k === 'out' || k === 'brak') && st && q > st.qty) warn = `На складе по учёту только ${fmtNum(st.qty)} ${st.unit}. Запись не пройдёт — проверьте количество.`;
+  if (k === 'prod') { const rs = stockOf(v.raw), rq = parseNum(v.rawQty); if (rs && rq > rs.qty) warn = `Сырья «${v.raw}» по учёту только ${fmtNum(rs.qty)} ${rs.unit}.`; }
+  screen('Проверка', `<h2>Проверьте перед записью</h2>
+    <div class="card"><dl class="rows">${rows.join('')}</dl></div>
+    ${warn ? `<div class="warn">${esc(warn)}</div>` : ''}
+    <div class="actions"><button class="btn ${K.cls}" id="cSave" type="button">Записать</button>
+      <button class="btn ghost" id="cFix" type="button">Исправить</button></div>`, () => showForm());
+  document.getElementById('cFix').onclick = () => showForm();
+  document.getElementById('cSave').onclick = save;
+}
+
+async function save(){
+  const k = S.f.kind, v = S.f.v;
+  const req = Object.assign({}, v, { qty: String(parseNum(v.qty)) });
+  if (k === 'prod') { req.rawQty = String(parseNum(v.rawQty)); req.brak = v.brak ? String(parseNum(v.brak)) : ''; }
+  if (k === 'in' && item(v.item) && item(v.item).group === 'Упаковка') req.date = '';
+  let d;
+  try { d = await api(k, req, 'Записываю…'); }
+  catch (e) {
+    if (e.server) return showResult(false, e.message);
+    return errorScreen(e, save, () => showForm());
+  }
+  S.last = { at: Date.now(), what: KINDS[k].title + ': ' + v.item + ' — ' + fmtNum(parseNum(v.qty)) + ' ' + unitOf(v.item) };
+  store('last', JSON.stringify(S.last));
+  S.stock = null;
+  showResult(true, d.text);
+}
+function showResult(ok, text){
+  const k = S.f.kind;
+  const html = esc(text).replace(/^(.*⚠.*)$/gm, '<span class="w">$1</span>');
+  screen(ok ? 'Записано' : 'Не записано', `
+    <div class="result ${ok ? 'ok' : 'bad'}" role="${ok ? 'status' : 'alert'}"><b>${ok ? 'Записано' : 'Не записано'}</b><pre>${html}</pre></div>
+    <div class="actions">
+      ${ok ? `<button class="btn ${KINDS[k].cls}" id="rMore" type="button">Ещё ${KINDS[k].title.toLowerCase()}</button>
+        <button class="btn ghost" id="rHome" type="button">На главную</button>
+        <button class="btn ghost" id="rUndo" type="button">Отменить эту запись</button>`
+      : `<button class="btn" id="rFix" type="button">Исправить</button><button class="btn ghost" id="rHome" type="button">На главную</button>`}
+    </div>`, ok ? showHome : () => showForm());
+  document.getElementById('rHome').onclick = showHome;
+  if (ok) { document.getElementById('rMore').onclick = () => startForm(k); document.getElementById('rUndo').onclick = askUndo; }
+  else document.getElementById('rFix').onclick = () => showForm();
+}
+
+/* Отмена своей последней записи */
+function askUndo(){
+  screen('Отмена', `<h2>Отменить запись?</h2>
+    <div class="card"><span>${esc(S.last ? S.last.what : '')}</span></div>
+    <p class="hint">Строки этой записи будут удалены из таблицы склада.</p>
+    <div class="actions"><button class="btn out" id="uYes" type="button">Да, отменить</button>
+      <button class="btn ghost" id="uNo" type="button">Нет</button></div>`, showHome);
+  document.getElementById('uNo').onclick = showHome;
+  document.getElementById('uYes').onclick = async () => {
+    try { const d = await api('undo', null, 'Отменяю…'); S.last = null; store('last', null); S.stock = null;
+      screen('Отменено', `<div class="result ok" role="status"><b>Готово</b><pre>${esc(d.text)}</pre></div>
+        <div class="actions"><button class="btn" id="uHome" type="button">На главную</button></div>`, showHome);
+      document.getElementById('uHome').onclick = showHome; }
+    catch (e) { errorScreen(e, null, showHome); }
+  };
+}
+
+/* ==========================================================
+   ОСТАТКИ, СРОКИ, ПРОВЕРКИ, ИСТОРИЯ
+   ========================================================== */
+async function showStock(force){
+  try { await loadStock(force); } catch (e) { return errorScreen(e, () => showStock(true), showHome); }
+  const P = S.st;
+  const draw = () => {
+    const words = P.q.toLowerCase().split(/\s+/).filter(Boolean);
+    const list = S.stock.filter(x => (!P.group || x.group === P.group) && (!P.problems || ['bad', 'warn'].indexOf(statusClass(x.status)) >= 0) &&
+      words.every(w => x.name.toLowerCase().indexOf(w) >= 0));
+    const probs = S.stock.filter(x => ['bad', 'warn'].indexOf(statusClass(x.status)) >= 0).length;
+    screen('Остатки', `
+      <input class="txt" id="sq" type="search" placeholder="Поиск по названию" value="${esc(P.q)}" autocomplete="off">
+      <div class="scroll-x">${['', ...S.ref.groups].map(g => `<button class="chip" type="button" data-g="${esc(g)}" aria-pressed="${P.group === g}">${g ? esc(g) : 'Все'}</button>`).join('')}</div>
+      <div class="chips"><button class="chip" type="button" id="sp" aria-pressed="${P.problems}">Только проблемы (${probs})</button></div>
+      <div class="list">${list.map(x => `<button class="item ${statusClass(x.status)}" type="button" data-name="${esc(x.name)}">
+        <span class="n">${esc(x.name)}</span><span class="q num">${fmtNum(x.qty)} ${esc(x.unit)}</span>
+        <span class="m">${esc(x.group)}${x.exp ? ' · ближайший срок ' + esc(x.exp) : ''}${x.min !== '' ? ' · минимум ' + fmtNum(x.min) : ''}
+        ${['bad', 'warn'].indexOf(statusClass(x.status)) >= 0 ? `<br><span class="badge ${statusClass(x.status)}">${esc(x.status)}</span>` : ''}</span></button>`).join('')
+        || '<div class="empty">Ничего не найдено</div>'}</div>`, showHome, () => showStock(true));
+    const q = document.getElementById('sq');
+    q.oninput = () => { P.q = q.value; const pos = q.selectionStart; draw(); const n = document.getElementById('sq'); n.focus(); try { n.setSelectionRange(pos, pos); } catch(e){} };
+    on('[data-g]', 'click', e => { P.group = e.currentTarget.dataset.g; draw(); });
+    document.getElementById('sp').onclick = () => { P.problems = !P.problems; draw(); };
+    on('[data-name]', 'click', e => { keep(); showItem(e.currentTarget.dataset.name); });
+  };
+  draw();
+}
+
+async function showItem(name){
+  let d; try { d = await api('batches', { item: name }, 'Загружаю партии…'); } catch (e) { return errorScreen(e, () => showItem(name), () => showStock()); }
+  const st = stockOf(name);
+  screen('Партии', `<h2>${esc(d.item)}</h2>
+    ${st ? `<div class="card"><span class="hint">Остаток по учёту</span><b class="num" style="font-size:34px">${fmtNum(st.qty)} ${esc(st.unit)}</b>
+      ${st.status && st.status !== 'ок' ? `<span class="badge ${statusClass(st.status)}">${esc(st.status)}</span>` : ''}</div>` : ''}
+    <div class="list">${d.batches.map((b, i) => `<div class="item ${b.days !== '' && b.days < 0 ? 'bad' : b.days !== '' && b.days <= 30 ? 'warn' : 'ok'}">
+      <span class="n">Партия ${esc(b.batch || 'без номера')}${i === 0 ? ' · следующая к списанию' : ''}</span><span class="q num">${fmtNum(b.left)} ${esc(d.unit)}</span>
+      <span class="m">${b.exp ? 'годен до ' + esc(b.exp) + (b.days !== '' ? ' (' + (b.days < 0 ? 'просрочена' : b.days + ' дн') + ')' : '') : 'срок не указан'}</span></div>`).join('')
+      || '<div class="empty">Партий с остатком нет</div>'}</div>`, () => showStock(), () => showItem(name));
+}
+
+async function showExpiry(){
+  let list; try { list = await api('expiry', { days: S.expDays }, 'Проверяю сроки…'); } catch (e) { return errorScreen(e, showExpiry, showHome); }
+  screen('Сроки', `
+    <div class="chips">${[30, 60, 90].map(n => `<button class="chip" type="button" data-d="${n}" aria-pressed="${S.expDays === n}">Меньше ${n} дней</button>`).join('')}</div>
+    <div class="list">${list.map(x => `<div class="item ${x.days < 0 ? 'bad' : 'warn'}">
+      <span class="n">${esc(x.name)}</span><span class="q num">${fmtNum(x.left)} ${esc(x.unit)}</span>
+      <span class="m">партия ${esc(x.batch || '—')} · годен до ${esc(x.exp)} · <b>${x.days < 0 ? 'просрочена на ' + (-x.days) + ' дн' : 'осталось ' + x.days + ' дн'}</b></span></div>`).join('')
+      || `<div class="empty">Партий со сроком меньше ${S.expDays} дней нет</div>`}</div>
+    ${list.length ? '<p class="hint">Отгружайте эти партии в первую очередь. Просроченные — списать: «Расход» → «Списание (срок)».</p>' : ''}`, showHome, showExpiry);
+  on('[data-d]', 'click', e => { S.expDays = Number(e.currentTarget.dataset.d); showExpiry(); });
+}
+
+async function showChecks(){
+  let d; try { d = await api('checks', null, 'Проверяю склад…'); } catch (e) { return errorScreen(e, showChecks, showHome); }
+  const bad = d.checks.filter(c => c.count > 0).length;
+  screen('Проверки', `<h2>Склад на ${esc(d.date)}</h2>
+    ${bad ? '' : '<div class="result ok" role="status"><b>Проблем не найдено</b></div>'}
+    <div class="list">${d.checks.map(c => `<div class="check ${c.count > 0 ? 'bad' : ''}"><span>${esc(c.name)}</span><b class="num">${c.count}</b></div>`).join('')}</div>
+    <div class="actions"><button class="btn ghost" id="toProb" type="button">Показать товары с проблемами</button></div>`, showHome, showChecks);
+  document.getElementById('toProb').onclick = () => { S.st = { q: '', group: '', problems: true }; showStock(true); };
+}
+
+async function showHistory(){
+  let list; try { list = await api('history', { n: 40 }, 'Загружаю историю…'); } catch (e) { return errorScreen(e, showHistory, showHome); }
+  const cls = { 'Приход': 'k-in', 'Выпуск': 'k-prod', 'Расход': 'k-out' };
+  screen('История', `<p class="hint">Последние записи склада — от всех сотрудников, бота и приложения.</p>
+    <div class="list">${list.map(x => `<div class="item ${cls[x.kind] || ''}"><span class="n">${esc(x.kind)}</span><span class="q" style="font-size:16px;font-weight:600">${esc(x.date)}</span>
+      <span class="m" style="color:var(--ink);font-size:17px">${esc(x.text)}</span></div>`).join('') || '<div class="empty">Записей нет</div>'}</div>`, showHome, showHistory);
+}
+
+start();
+if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js', { scope: './' }).catch(() => {}));
+</script>
+</body>
+</html>
