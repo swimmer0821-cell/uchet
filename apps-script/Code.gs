@@ -747,3 +747,144 @@ function safeText_(x, max) {
   if (/^[=+\-@]/.test(t)) t = "'" + t;
   return t;
 }
+
+
+// ===================== ПРОДАЖИ → ПРИХОД (автоматически) =====================
+// Оплаченный заказ сам становится доходом «Продажи оптом».
+//  • Заказы из Telegram-бота берутся из таблицы «Заказы — LAZA (из бота)»: статус «Оплачен» или
+//    «Отправлен» — доход; «Отменён» или возврат к «Новый/Подтверждён/Собран» — доход отменяется.
+//  • Заказы, внесённые в CRM руками, и выбранная в CRM касса приходят файлами из служебной папки.
+// Запускается сама каждые 5 минут. Включить один раз: выбрать функцию installSalesSync → «Выполнить».
+// Запись можно поправить в приложении «Деньги» (например, кассу) — автоматика её не перезапишет.
+const SALES_ORDERS_SHEET_ID = '1C5picUyFWGUyaTPOMhZssAfjyMRb5RNtljDWpZDNFa0';   // «Заказы — LAZA (из бота)»
+const SALES_INBOX_FOLDER_ID = '1VEhAIuiLhAoU0RHH7joGcHw-TyMcNiwm';            // «LAZA продажи → деньги (служебная)»
+const SALES_FROM = '2026-10-01';             // заказы, оплаченные раньше этой даты, не берём (начало учёта)
+const SALES_DEFAULT_PAY = 'Перечисление';    // касса для заказов из бота, если в CRM не выбрали другую
+const SALES_WHO = 'Продажи (CRM)';
+const SALES_PAID = ['Оплачен', 'Отправлен'];
+
+function installSalesSync() {
+  ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'syncSales').forEach(t => ScriptApp.deleteTrigger(t));
+  ScriptApp.newTrigger('syncSales').timeBased().everyMinutes(5).create();
+  const r = syncSales();
+  Logger.log('Включено: доход от продаж записывается каждые 5 минут. Сейчас: ' + JSON.stringify(r));
+}
+
+function syncSales() {
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(20000)) return { busy: true };
+  const res = { added: 0, updated: 0, cancelled: 0 };
+  try {
+    const ref = readRef_();
+    const props = PropertiesService.getScriptProperties();
+    const ops = readOps_(0);
+    const byOpId = {};
+    ops.forEach(o => { byOpId[o.id] = o; });
+
+    // 1) файлы от CRM: заказы, внесённые руками, и выбранная касса
+    const files = DriveApp.getFolderById(SALES_INBOX_FOLDER_ID).getFiles();
+    const inbox = [];
+    while (files.hasNext()) {
+      const f = files.next();
+      if (f.getName().indexOf('sale-') !== 0) continue;
+      try { inbox.push({ f: f, d: JSON.parse(f.getBlob().getDataAsString('UTF-8')) }); } catch (err) { f.setName('error-' + f.getName()); }
+    }
+    inbox.sort((a, b) => String(a.d.at || '').localeCompare(String(b.d.at || '')));
+    inbox.forEach(x => {
+      const d = x.d;
+      if (d.source === 'bot' && d.num) {
+        // касса для заказа из бота
+        const pay = salePay_(ref, d.pay);
+        props.setProperty('PAY_bot_' + d.num, pay);
+        const o = byOpId['sale-bot-' + d.num];
+        if (o && o.status !== STATUS_CANCELLED && o.pay !== pay) { saleWrite_(o.row, { pay: pay }); res.updated++; }
+      } else if (d.source === 'crm' && d.orderId) {
+        const id = 'sale-crm-' + String(d.orderId).replace(/[^A-Za-z0-9-]/g, '');
+        const o = byOpId[id];
+        if (SALES_PAID.indexOf(d.status) >= 0 && Number(d.total) > 0) {
+          const v = saleValues_(ref, { num: d.num, client: d.client, total: d.total, date: d.date, pay: d.pay, crm: true });
+          if (!o) { saleAppend_(id, v); res.added++; }
+          else { saleWrite_(o.row, v, true); res.updated++; }
+        } else if (o && o.status !== STATUS_CANCELLED) { saleCancel_(o.row); res.cancelled++; }
+      }
+      x.f.setTrashed(true);
+    });
+
+    // 2) заказы из бота — по таблице заказов
+    const sh = SpreadsheetApp.openById(SALES_ORDERS_SHEET_ID).getSheets()[0];
+    const rows = sh.getLastRow() > 1 ? sh.getRange(2, 1, sh.getLastRow() - 1, 11).getDisplayValues() : [];
+    const fresh = readOps_(0); fresh.forEach(o => { byOpId[o.id] = o; });
+    rows.forEach(r => {
+      const num = String(r[0]).trim();
+      if (!/^\d+$/.test(num)) return;
+      const status = String(r[8]).trim(), total = Math.round(Number(String(r[7]).replace(/[^\d.,]/g, '').replace(',', '.'))) || 0;
+      const id = 'sale-bot-' + num, o = byOpId[id];
+      if (SALES_PAID.indexOf(status) >= 0 && total > 0) {
+        const date = ruDate_(r[9]) || ruDate_(r[1]) || today_();
+        if (date < SALES_FROM) return;
+        if (!o) {
+          saleAppend_(id, saleValues_(ref, { num: num, client: r[2], total: total, date: date, pay: props.getProperty('PAY_bot_' + num) || '' }));
+          res.added++;
+        } else if (o.status === STATUS_CANCELLED) {
+          saleWrite_(o.row, { amount: total }, true); res.updated++;   // заказ снова оплачен
+        } else if (o.sum !== total) {
+          saleWrite_(o.row, { amount: total }); res.updated++;          // состав заказа поменяли
+        }
+      } else if (o && o.status !== STATUS_CANCELLED) {
+        saleCancel_(o.row); res.cancelled++;
+      }
+    });
+    return res;
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function salePay_(ref, pay) {
+  if (pay && ref.pays.some(p => p.ru === pay)) return pay;
+  if (ref.pays.some(p => p.ru === SALES_DEFAULT_PAY)) return SALES_DEFAULT_PAY;
+  return ref.pays.length ? ref.pays[0].ru : SALES_DEFAULT_PAY;
+}
+
+// Статья: «Продажи оптом» → «Дистрибьютор» (если клиент — дистрибьютор) или «Другие оптовые покупатели»
+function saleValues_(ref, x) {
+  const inc = ref.articles.filter(a => a.type === 'Доход');
+  const want = /дистрибьют/i.test(String(x.client || '')) ? 'Дистрибьютор' : 'Другие оптовые покупатели';
+  const art = inc.find(a => a.cat === 'Продажи оптом' && a.sub === want) || inc.find(a => a.cat === 'Продажи оптом') || inc[0] || { cat: 'Продажи оптом', sub: want };
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(String(x.date || '')) ? (x.date > today_() ? today_() : x.date) : today_();
+  return { date: date, cat: art.cat, sub: art.sub, amount: Math.round(Number(x.total)) || 0, pay: salePay_(ref, x.pay),
+    party: safeText_(x.client, 100), comment: (x.crm ? 'Заказ №' + (x.num || '—') + ' (внесён в CRM)' : 'Заказ №' + x.num + ' из Telegram-бота') + ', записано автоматически',
+    name: 'Заказ №' + (x.num || '—') };
+}
+
+function saleAppend_(id, v) {
+  const sh = sheet_(SHEET_OPS);
+  ensureHeaders_(sh);
+  sh.appendRow([id, dateSerial_(v.date), 'Доход', v.cat, v.sub, v.amount, v.pay, v.party, v.comment, SALES_WHO, new Date(), '', '', v.name, '', '', '']);
+}
+
+// Меняет только переданные поля. revive — снять отметку «Отменена».
+function saleWrite_(row, v, revive) {
+  const sh = sheet_(SHEET_OPS);
+  const col = (h) => OPS_HEADERS.indexOf(h) + 1;
+  if (v.date) sh.getRange(row, col('Дата')).setValue(dateSerial_(v.date)).setNumberFormat('dd.mm.yyyy');
+  if (v.cat) sh.getRange(row, col('Статья'), 1, 2).setValues([[v.cat, v.sub]]);
+  if (v.amount) sh.getRange(row, col('Сумма')).setValue(v.amount);
+  if (v.pay) sh.getRange(row, col('Способ оплаты')).setValue(v.pay);
+  if (v.party !== undefined) sh.getRange(row, col('Контрагент')).setValue(v.party);
+  if (revive) sh.getRange(row, col('Статус')).setValue('');
+  sh.getRange(row, col('Изменено')).setValue(SALES_WHO + ', ' + Utilities.formatDate(new Date(), TIMEZONE, 'dd.MM.yyyy HH:mm'));
+}
+
+function saleCancel_(row) {
+  const sh = sheet_(SHEET_OPS);
+  sh.getRange(row, OPS_HEADERS.indexOf('Статус') + 1).setValue(STATUS_CANCELLED);
+  sh.getRange(row, OPS_HEADERS.indexOf('Изменено') + 1).setValue(SALES_WHO + ': заказ отменён, ' + Utilities.formatDate(new Date(), TIMEZONE, 'dd.MM.yyyy HH:mm'));
+  ensureCancelFormat_(sh);
+}
+
+// «16.10.2026 18:08» → «2026-10-16»
+function ruDate_(s) {
+  const m = /^(\d{2})\.(\d{2})\.(\d{4})/.exec(String(s || '').trim());
+  return m ? m[3] + '-' + m[2] + '-' + m[1] : '';
+}
