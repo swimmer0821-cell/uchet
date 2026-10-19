@@ -753,6 +753,7 @@ function safeText_(x, max) {
 // Оплаченный заказ сам становится доходом «Продажи оптом».
 //  • Заказы из Telegram-бота берутся из таблицы «Заказы — LAZA (из бота)»: статус «Оплачен» или
 //    «Отправлен» — доход; «Отменён» или возврат к «Новый/Подтверждён/Собран» — доход отменяется.
+//  • Касса заказа из бота — из колонки N «Оплата» (менеджер выбирает в боте при «Оплачен»: Наличные / Перечисление).
 //  • Заказы, внесённые в CRM руками, и выбранная в CRM касса приходят файлами из служебной папки.
 // Запускается сама каждые 5 минут. Включить один раз: выбрать функцию installSalesSync → «Выполнить».
 // Запись можно поправить в приложении «Деньги» (например, кассу) — автоматика её не перезапишет.
@@ -812,20 +813,30 @@ function syncSales() {
 
     // 2) заказы из бота — по таблице заказов
     const sh = SpreadsheetApp.openById(SALES_ORDERS_SHEET_ID).getSheets()[0];
-    const rows = sh.getLastRow() > 1 ? sh.getRange(2, 1, sh.getLastRow() - 1, 11).getDisplayValues() : [];
+    const rows = sh.getLastRow() > 1 ? sh.getRange(2, 1, sh.getLastRow() - 1, 14).getDisplayValues() : [];
     const fresh = readOps_(0); fresh.forEach(o => { byOpId[o.id] = o; });
     rows.forEach(r => {
       const num = String(r[0]).trim();
       if (!/^\d+$/.test(num)) return;
       const status = String(r[8]).trim(), total = Math.round(Number(String(r[7]).replace(/[^\d.,]/g, '').replace(',', '.'))) || 0;
       const id = 'sale-bot-' + num, o = byOpId[id];
+      const sheetPay = String(r[13] || '').trim();   // колонка N «Оплата»: менеджер выбрал в боте при «Оплачен»
       if (SALES_PAID.indexOf(status) >= 0 && total > 0) {
         const date = ruDate_(r[9]) || ruDate_(r[1]) || today_();
         if (date < SALES_FROM) return;
         if (!o) {
-          saleAppend_(id, saleValues_(ref, { num: num, client: r[2], total: total, date: date, pay: props.getProperty('PAY_bot_' + num) || '' }));
+          saleAppend_(id, saleValues_(ref, { num: num, client: r[2], total: total, date: date, pay: props.getProperty('PAY_bot_' + num) || sheetPay }));
+          if (sheetPay) props.setProperty('SHEETPAY_bot_' + num, sheetPay);
           res.added++;
-        } else if (o.status === STATUS_CANCELLED) {
+          return;
+        }
+        // способ оплаты из бота появился или поменялся — переносим один раз (ручную правку в «Деньгах» потом не трогаем)
+        if (sheetPay && props.getProperty('SHEETPAY_bot_' + num) !== sheetPay) {
+          props.setProperty('SHEETPAY_bot_' + num, sheetPay);
+          const pay = salePay_(ref, sheetPay);
+          if (o.status !== STATUS_CANCELLED && o.pay !== pay) { saleWrite_(o.row, { pay: pay }); res.updated++; }
+        }
+        if (o.status === STATUS_CANCELLED) {
           saleWrite_(o.row, { amount: total }, true); res.updated++;   // заказ снова оплачен
         } else if (o.sum !== total) {
           saleWrite_(o.row, { amount: total }); res.updated++;          // состав заказа поменяли
