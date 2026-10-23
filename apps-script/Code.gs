@@ -763,6 +763,13 @@ const SALES_FROM = '2026-10-01';             // заказы, оплаченны
 const SALES_DEFAULT_PAY = 'Перечисление';    // касса для заказов из бота, если в CRM не выбрали другую
 const SALES_WHO = 'Продажи (CRM)';
 const SALES_PAID = ['Оплачен', 'Отправлен'];
+// Цены в заказах — без НДС. При «Перечислении» покупатель платит с НДС 12% → в «Деньги» пишем сумму с НДС (решение 23.10.2026).
+// Наличные и карта — без НДС.
+const SALES_VAT = 12, SALES_VAT_PAYS = ['Перечисление'];
+function saleAmt_(total, pay) {
+  total = Math.round(Number(total)) || 0;
+  return SALES_VAT_PAYS.indexOf(pay) >= 0 ? Math.round(total * (100 + SALES_VAT) / 100) : total;
+}
 
 function installSalesSync() {
   ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'syncSales').forEach(t => ScriptApp.deleteTrigger(t));
@@ -834,12 +841,14 @@ function syncSales() {
         if (sheetPay && props.getProperty('SHEETPAY_bot_' + num) !== sheetPay) {
           props.setProperty('SHEETPAY_bot_' + num, sheetPay);
           const pay = salePay_(ref, sheetPay);
-          if (o.status !== STATUS_CANCELLED && o.pay !== pay) { saleWrite_(o.row, { pay: pay }); res.updated++; }
+          if (o.status !== STATUS_CANCELLED && o.pay !== pay) { saleWrite_(o.row, { pay: pay }); o.pay = pay; res.updated++; }
         }
-        if (o.status === STATUS_CANCELLED) {
-          saleWrite_(o.row, { amount: total }, true); res.updated++;   // заказ снова оплачен
-        } else if (o.sum !== total) {
-          saleWrite_(o.row, { amount: total }); res.updated++;          // состав заказа поменяли
+        const cur = o;
+        const want = saleAmt_(total, cur.pay), note = saleNote_(num, total, cur.pay, false);
+        if (cur.status === STATUS_CANCELLED) {
+          saleWrite_(cur.row, { amount: want, comment: note }, true); res.updated++;   // заказ снова оплачен
+        } else if (cur.sum !== want) {
+          saleWrite_(cur.row, { amount: want, comment: note }); res.updated++;          // состав заказа или касса поменялись
         }
       } else if (o && o.status !== STATUS_CANCELLED) {
         saleCancel_(o.row); res.cancelled++;
@@ -863,9 +872,15 @@ function saleValues_(ref, x) {
   const want = /дистрибьют/i.test(String(x.client || '')) ? 'Дистрибьютор' : 'Другие оптовые покупатели';
   const art = inc.find(a => a.cat === 'Продажи оптом' && a.sub === want) || inc.find(a => a.cat === 'Продажи оптом') || inc[0] || { cat: 'Продажи оптом', sub: want };
   const date = /^\d{4}-\d{2}-\d{2}$/.test(String(x.date || '')) ? (x.date > today_() ? today_() : x.date) : today_();
-  return { date: date, cat: art.cat, sub: art.sub, amount: Math.round(Number(x.total)) || 0, pay: salePay_(ref, x.pay),
-    party: safeText_(x.client, 100), comment: (x.crm ? 'Заказ №' + (x.num || '—') + ' (внесён в CRM)' : 'Заказ №' + x.num + ' из Telegram-бота') + ', записано автоматически',
+  const pay = salePay_(ref, x.pay);
+  return { date: date, cat: art.cat, sub: art.sub, amount: saleAmt_(x.total, pay), pay: pay,
+    party: safeText_(x.client, 100), comment: saleNote_(x.num, x.total, pay, x.crm),
     name: 'Заказ №' + (x.num || '—') };
+}
+function saleNote_(num, total, pay, crm) {
+  total = Math.round(Number(total)) || 0;
+  return (crm ? 'Заказ №' + (num || '—') + ' (внесён в CRM)' : 'Заказ №' + num + ' из Telegram-бота') + ', записано автоматически' +
+    (SALES_VAT_PAYS.indexOf(pay) >= 0 ? ' · с НДС ' + SALES_VAT + '%, без НДС ' + total.toLocaleString('ru-RU') + ' сум' : '');
 }
 
 function saleAppend_(id, v) {
@@ -883,6 +898,7 @@ function saleWrite_(row, v, revive) {
   if (v.amount) sh.getRange(row, col('Сумма')).setValue(v.amount);
   if (v.pay) sh.getRange(row, col('Способ оплаты')).setValue(v.pay);
   if (v.party !== undefined) sh.getRange(row, col('Контрагент')).setValue(v.party);
+  if (v.comment) sh.getRange(row, col('Комментарий')).setValue(v.comment);
   if (revive) sh.getRange(row, col('Статус')).setValue('');
   sh.getRange(row, col('Изменено')).setValue(SALES_WHO + ', ' + Utilities.formatDate(new Date(), TIMEZONE, 'dd.MM.yyyy HH:mm'));
 }
