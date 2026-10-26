@@ -133,6 +133,13 @@ textarea{width:100%;min-height:90px;border:2px solid var(--line);border-radius:1
 
 /* История */
 .list{display:flex;flex-direction:column;gap:12px}
+.hist-open{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:64px;margin:0 0 14px;padding:10px 16px;border:2px solid var(--line);border-radius:var(--r);background:var(--soft);font-size:19px;font-weight:700;color:var(--ink);text-align:left}
+.hist-open small{display:block;font-size:15px;font-weight:400;color:var(--muted)}
+.hist-open::after{content:"›";font-size:30px;line-height:1;color:var(--muted)}
+.day{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin:10px 0 -2px;padding-bottom:4px;border-bottom:2px solid var(--line);font-size:18px;font-weight:800}
+.day:first-child{margin-top:0}
+.day span{font-size:16px;font-weight:600;color:var(--muted)}
+.day .c-exp{color:var(--exp)} .day .c-inc{color:var(--inc)}
 .item{border:2px solid var(--line);border-left-width:10px;border-radius:12px;padding:12px 14px;display:grid;grid-template-columns:1fr auto;gap:4px 12px}
 .item.exp{border-left-color:var(--exp)} .item.inc{border-left-color:var(--inc)} .item.neu{border-left-color:var(--neu)}
 .item.off{opacity:.55}
@@ -202,7 +209,7 @@ const T = {
     app:'Учёт SUB PROFI', langBtn:'Oʻzbekcha', back:'Назад', home:'Главная',
     whoAreYou:'Кто вы?', whoHint:'Нажмите на своё имя', enterPin:'Введите PIN', newPin:'Первый вход. Придумайте PIN из 4 цифр и запомните его', repeatPin:'Повторите PIN', pinMismatch:'PIN не совпал. Придумайте ещё раз.', hello:'Здравствуйте, {n}',
     expense:'Расход', expenseSub:'Потратили деньги', income:'Доход', incomeSub:'Деньги пришли',
-    reports:'Отчёты', reportsSub:'Сколько пришло и ушло', history:'История', historySub:'Последние записи', balance:'Остаток', balanceSub:'Сколько денег в кассах', balTotal:'Всего денег', balOn:'по записям на {d}', balNote:'Считается по всем записям с начала учёта: начальный остаток + доходы и вложения − расходы, переводы перекладывают между кассами. Начальный остаток руководитель вписывает в таблицу: лист «Справочники», колонка L.', balNeg:'Минус: проверьте записи или начальный остаток.', payFrom:'Откуда взяли', payTo:'Куда положили',
+    reports:'Отчёты', reportsSub:'Сколько пришло и ушло', history:'История', historySub:'Последние записи', histExp:'История расходов', histInc:'История доходов', histOpenSub:'что уже записано, по дням', dayExp:'расход', dayInc:'приход', balance:'Остаток', balanceSub:'Сколько денег в кассах', balTotal:'Всего денег', balOn:'по записям на {d}', balNote:'Считается по всем записям с начала учёта: начальный остаток + доходы и вложения − расходы, переводы перекладывают между кассами. Начальный остаток руководитель вписывает в таблицу: лист «Справочники», колонка L.', balNeg:'Минус: проверьте записи или начальный остаток.', payFrom:'Откуда взяли', payTo:'Куда положили',
     logout:'Сменить пользователя',
     whatPaid:'На что потратили?', fromWhere:'Что пришло?', clarify:'Уточните', other:'Другое', otherSub:'Все статьи',
     groupInc:'Доходы', groupInv:'Вложения и займы — не доход', groupTr:'Перевод между своими — не расход',
@@ -237,7 +244,7 @@ const T = {
     app:'SUB PROFI hisobi', langBtn:'Русский', back:'Orqaga', home:'Bosh sahifa',
     whoAreYou:'Siz kimsiz?', whoHint:'Ismingizni bosing', enterPin:'PIN kodni kiriting', newPin:'Birinchi kirish. 4 raqamli PIN oʻylab toping va eslab qoling', repeatPin:'PINni takrorlang', pinMismatch:'PIN mos kelmadi. Qaytadan oʻylab toping.', hello:'Assalomu alaykum, {n}',
     expense:'Xarajat', expenseSub:'Pul sarflandi', income:'Daromad', incomeSub:'Pul keldi',
-    reports:'Hisobotlar', reportsSub:'Qancha keldi va ketdi', history:'Tarix', historySub:'Oxirgi yozuvlar', balance:'Qoldiq', balanceSub:'Kassalarda qancha pul bor', balTotal:'Jami pul', balOn:'{d} holatiga yozuvlar boʻyicha', balNote:'Hisob boshidan barcha yozuvlar boʻyicha: boshlangʻich qoldiq + daromad va investitsiyalar − xarajatlar, oʻtkazmalar kassalar orasida koʻchiradi. Boshlangʻich qoldiqni rahbar jadvalga yozadi: «Справочники» varagʻi, L ustun.', balNeg:'Minus: yozuvlarni yoki boshlangʻich qoldiqni tekshiring.', payFrom:'Qayerdan olindi', payTo:'Qayerga qoʻyildi',
+    reports:'Hisobotlar', reportsSub:'Qancha keldi va ketdi', history:'Tarix', historySub:'Oxirgi yozuvlar', histExp:'Xarajatlar tarixi', histInc:'Daromadlar tarixi', histOpenSub:'yozilganlar, kunlar boʻyicha', dayExp:'xarajat', dayInc:'kirim', balance:'Qoldiq', balanceSub:'Kassalarda qancha pul bor', balTotal:'Jami pul', balOn:'{d} holatiga yozuvlar boʻyicha', balNote:'Hisob boshidan barcha yozuvlar boʻyicha: boshlangʻich qoldiq + daromad va investitsiyalar − xarajatlar, oʻtkazmalar kassalar orasida koʻchiradi. Boshlangʻich qoldiqni rahbar jadvalga yozadi: «Справочники» varagʻi, L ustun.', balNeg:'Minus: yozuvlarni yoki boshlangʻich qoldiqni tekshiring.', payFrom:'Qayerdan olindi', payTo:'Qayerga qoʻyildi',
     logout:'Foydalanuvchini almashtirish',
     whatPaid:'Nimaga sarfladingiz?', fromWhere:'Nima keldi?', clarify:'Aniqlang', other:'Boshqa', otherSub:'Barcha moddalar',
     groupInc:'Daromadlar', groupInv:'Investitsiya va qarzlar — daromad emas', groupTr:'Oʻz hisoblar oʻrtasida — xarajat emas',
@@ -465,7 +472,7 @@ function showHome(){
   document.getElementById('hInc').onclick = () => startDraft('inc');
   if (boss) document.getElementById('hRep').onclick = () => showReports();
   document.getElementById('hBal').onclick = () => showBalance();
-  document.getElementById('hHis').onclick = () => { S.histFilter = {}; showHistory(); };
+  document.getElementById('hHis').onclick = () => { S.histFilter = {}; S.histBack = null; showHistory(); };
   document.getElementById('hOut').onclick = () => { logout(); showLogin(); };
 }
 
@@ -500,6 +507,7 @@ function showQuick(){
   const quick = S.ref.articles.filter(a => a.type === 'Расход' && a.quick > 0).sort((a, b) => a.quick - b.quick);
   if (!quick.length) return showCats('Расход', showHome);
   screen(t('expense'), `
+    ${histOpenBtn('Расход')}
     <h2>${esc(t('whatPaid'))}</h2>
     <div class="tiles t-exp">
       ${quick.map((a, i) => `<button class="tile" type="button" data-i="${i}">${esc(S.lang === 'uz' ? a.tileUz : a.tile)}<small>${esc(catName(a))}</small></button>`).join('')}
@@ -507,6 +515,17 @@ function showQuick(){
     </div>`, showHome);
   $app.querySelectorAll('[data-i]').forEach(b => b.onclick = () => { const a = quick[+b.dataset.i]; pick(a, showQuick); });
   document.getElementById('qMore').onclick = () => showCats('Расход', showQuick);
+  bindHistOpen(showQuick);
+}
+
+// Кнопка «История расходов / доходов» прямо в разделе: сразу видно, что уже записано
+function histOpenBtn(type){
+  if (S.draft && S.draft.editId) return '';
+  return `<button class="hist-open" type="button" id="histOpen" data-type="${type}"><span>${esc(t(type === 'Расход' ? 'histExp' : 'histInc'))}<small>${esc(t('histOpenSub'))}</small></span></button>`;
+}
+function bindHistOpen(back){
+  const b = document.getElementById('histOpen');
+  if (b) b.onclick = () => { S.histFilter = { type: b.dataset.type }; S.histBack = back; showHistory(); };
 }
 
 function cats(type){ const seen = {}; return S.ref.articles.filter(a => a.type === type && !seen[a.cat] && (seen[a.cat] = true)); }
@@ -515,9 +534,11 @@ function showCats(type, backFn){
   rerender = () => showCats(type, backFn);
   const list = cats(type);
   screen(t('expense'), `
+    ${backFn === showHome ? histOpenBtn('Расход') : ''}
     <h2>${esc(t('whatPaid'))}</h2>
     <div class="tiles t-exp">${list.map((a, i) => `<button class="tile" type="button" data-i="${i}">${esc(catName(a))}</button>`).join('')}</div>`, backFn);
   $app.querySelectorAll('[data-i]').forEach(b => b.onclick = () => showSubs(type, list[+b.dataset.i].cat, () => showCats(type, backFn)));
+  bindHistOpen(() => showCats(type, backFn));
 }
 
 // Руководитель: доходы, вложения, переводы — разными группами
@@ -530,8 +551,9 @@ function showIncomeCats(backFn){
     const list = cats(type); if (!list.length) return '';
     return `<h3>${esc(t(title))}</h3><div class="tiles ${cls}">${list.map(a => { all.push(a); return `<button class="tile" type="button" data-i="${all.length - 1}">${esc(catName(a))}</button>`; }).join('')}</div>`;
   }).join('');
-  screen(t('income'), `<h2>${esc(t('fromWhere'))}</h2>${html}`, backFn);
+  screen(t('income'), `${backFn === showHome ? histOpenBtn('Доход') : ''}<h2>${esc(t('fromWhere'))}</h2>${html}`, backFn);
   $app.querySelectorAll('[data-i]').forEach(b => b.onclick = () => { const a = all[+b.dataset.i]; showSubs(a.type, a.cat, () => showIncomeCats(backFn)); });
+  bindHistOpen(() => showIncomeCats(backFn));
 }
 
 function showSubs(type, cat, backFn){
@@ -778,7 +800,9 @@ function renderHistory(){
   const f = S.histFilter, boss = isBoss();
   const types = boss ? ['Расход', 'Доход', 'Вложение', 'Перевод'] : ['Расход', 'Доход'];
   const catList = cats(f.type || 'Расход').concat(f.type ? [] : cats('Доход'));
-  const items = S.hist.items, mins = (S.ref.cancelMinutes || 10) * 60000;
+  const items = S.hist.items.slice().sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.created || 0) - (a.created || 0));
+  const mins = (S.ref.cancelMinutes || 10) * 60000;
+  let lastDay = null;
   screen(t('history'), `
     ${types.length ? `<div class="scroll-x" role="group">
       <button class="chip" type="button" data-ft="" aria-pressed="${!f.type}">${esc(t('all'))}</button>
@@ -789,8 +813,10 @@ function renderHistory(){
     <div class="list">
       ${items.length ? items.map(o => {
         const c = typeClass(o.type);
+        const head = o.date !== lastDay ? dayHead(o.date, items) : '';
+        lastDay = o.date;
         const left = Math.max(1, Math.ceil((mins - (S.hist.now - o.created)) / 60000));
-        return `<div class="item ${c} ${o.cancelled ? 'off' : ''}">
+        return head + `<div class="item ${c} ${o.cancelled ? 'off' : ''}">
           <div>${o.name ? `<b>${esc(o.name)}</b>${o.qty ? ` · <span class="num">${esc(String(o.qty).replace('.', ','))} ${esc(unitLabel(o.unit))}</span>` : ''}<br><span class="hint">${esc(catLabel(o.type, o.cat))} → ${esc(subLabel(o))}</span>` : `<b>${esc(catLabel(o.type, o.cat))}</b> → ${esc(subLabel(o))}`}</div>
           <div class="s num c-${c}">${o.type === 'Расход' ? '−' : ''}${money(o.sum)}</div>
           <div class="m">${esc(fmtDate(o.date))} · ${esc(payLabel(o.pay))}${o.type === 'Перевод' && o.payTo ? ' → ' + esc(payLabel(o.payTo)) : ''}${o.party ? ' · ' + esc(o.party) : ''} · ${esc(t('who'))}: ${esc(o.who)}${o.cancelled ? ' · <b>' + esc(t('cancelled')) + '</b>' : ''}</div>
@@ -804,7 +830,7 @@ function renderHistory(){
                 ${o.canCancel ? `<button class="chip" type="button" data-cancel="${esc(o.id)}">${esc(t('cancelRec'))}</button>
                 ${isBoss() ? '' : `<span class="hint" style="align-self:center">${esc(t('cancelLeft', { m: left }))}</span>`}` : ''}</div>`) : ''}
         </div>`; }).join('') : `<div class="empty">${esc(t('empty'))}</div>`}
-    </div>`, showHome);
+    </div>`, S.histBack || showHome);
   $app.querySelectorAll('[data-ft]').forEach(b => b.onclick = () => { S.histFilter = { type: b.dataset.ft || undefined }; showHistory(); });
   $app.querySelectorAll('[data-fc]').forEach(b => b.onclick = () => { S.histFilter = { type: f.type, cat: b.dataset.fc || undefined }; showHistory(); });
   $app.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => { const o = items.find(x => x.id === b.dataset.edit); if (o) startEdit(o); });
@@ -816,6 +842,17 @@ function renderHistory(){
     catch (e) { showError(e.code, showHistory, showHistory); }
     finally { S.busy = false; }
   });
+}
+// Заголовок дня: «Сегодня», «Вчера» или дата, и сколько за день ушло и пришло (без отменённых)
+function dayHead(date, items){
+  const day = items.filter(x => x.date === date && !x.cancelled);
+  const exp = day.filter(x => x.type === 'Расход').reduce((s, x) => s + (Number(x.sum) || 0), 0);
+  const inc = day.filter(x => x.type === 'Доход').reduce((s, x) => s + (Number(x.sum) || 0), 0);
+  const name = date === S.ref.today ? t('today') : date === addDays(S.ref.today, -1) ? t('yesterday') : fmtDate(date);
+  const parts = [];
+  if (exp) parts.push(t('dayExp') + ' <span class="num c-exp">−' + money(exp) + '</span>');
+  if (inc) parts.push(t('dayInc') + ' <span class="num c-inc">' + money(inc) + '</span>');
+  return `<div class="day">${esc(name)}<span>${parts.join(' · ')}${parts.length ? ' ' + esc(t('sum')) : ''}</span></div>`;
 }
 function subLabel(o){ const a = S.ref.articles.find(x => x.type === o.type && x.cat === o.cat && x.sub === o.sub); return a ? subName(a) : o.sub; }
 
