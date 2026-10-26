@@ -133,6 +133,10 @@ textarea{width:100%;min-height:90px;border:2px solid var(--line);border-radius:1
 
 /* История */
 .list{display:flex;flex-direction:column;gap:12px}
+.grp{display:flex;flex-direction:column;gap:8px}
+.grp .big{width:100%}
+.big-sub{min-height:52px;padding:8px 16px;border:2px solid var(--line);border-radius:12px;background:var(--soft);font-size:18px;font-weight:700;color:var(--ink);text-align:left}
+.big-sub.exp{border-color:#e3a9a6} .big-sub.inc{border-color:#9fcfae}
 .hist-open{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:64px;margin:0 0 14px;padding:10px 16px;border:2px solid var(--line);border-radius:var(--r);background:var(--soft);font-size:19px;font-weight:700;color:var(--ink);text-align:left}
 .hist-open small{display:block;font-size:15px;font-weight:400;color:var(--muted)}
 .hist-open::after{content:"›";font-size:30px;line-height:1;color:var(--muted)}
@@ -461,8 +465,10 @@ function showHome(){
   screen(t('app'), `
     <p class="hint">${esc(t('hello', { n: S.user.name }))}</p>
     <div class="home">
-      <button class="big exp" type="button" id="hExp"><b>${esc(t('expense'))}</b><span>${esc(t('expenseSub'))}</span></button>
-      <button class="big inc" type="button" id="hInc"><b>${esc(t('income'))}</b><span>${esc(t('incomeSub'))}</span></button>
+      <div class="grp"><button class="big exp" type="button" id="hExp"><b>${esc(t('expense'))}</b><span>${esc(t('expenseSub'))}</span></button>
+        <button class="big-sub exp" type="button" id="hExpH">${esc(t('histExp'))} ›</button></div>
+      <div class="grp"><button class="big inc" type="button" id="hInc"><b>${esc(t('income'))}</b><span>${esc(t('incomeSub'))}</span></button>
+        <button class="big-sub inc" type="button" id="hIncH">${esc(t('histInc'))} ›</button></div>
       ${boss ? `<button class="big" type="button" id="hRep"><b>${esc(t('reports'))}</b><span>${esc(t('reportsSub'))}</span></button>` : ''}
       <button class="big bal" type="button" id="hBal"><b>${esc(t('balance'))}</b><span>${esc(t('balanceSub'))}</span></button>
       <button class="big" type="button" id="hHis"><b>${esc(t('history'))}</b><span>${esc(t('historySub'))}</span></button>
@@ -470,6 +476,8 @@ function showHome(){
     <div class="actions"><button class="btn ghost" type="button" id="hOut">${esc(t('logout'))}</button></div>`);
   document.getElementById('hExp').onclick = () => startDraft('exp');
   document.getElementById('hInc').onclick = () => startDraft('inc');
+  document.getElementById('hExpH').onclick = () => { S.histFilter = { type: 'Расход' }; S.histBack = showHome; showHistory(); };
+  document.getElementById('hIncH').onclick = () => { S.histFilter = { type: 'Доход' }; S.histBack = showHome; showHistory(); };
   if (boss) document.getElementById('hRep').onclick = () => showReports();
   document.getElementById('hBal').onclick = () => showBalance();
   document.getElementById('hHis').onclick = () => { S.histFilter = {}; S.histBack = null; showHistory(); };
