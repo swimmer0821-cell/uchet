@@ -224,7 +224,7 @@ const T = {
     period:'Период: {a} — {b}', comparedWith:'Сравнение с {a} — {b}', noData:'За этот период записей нет',
     T_Расход:'Расход', T_Доход:'Доход', T_Вложение:'Вложение', T_Перевод:'Перевод',
     ERR_NET:'Нет связи с интернетом или сервер не ответил. Проверьте интернет и нажмите «Повторить».',
-    ERR_PIN:'Неверный PIN. Попробуйте ещё раз.', ERR_PAY_TO:'Выберите, куда положили деньги — другую кассу.', ERR_NO_PIN:'Нужно придумать PIN.', ERR_PIN_EXISTS:'PIN уже задан. Введите его. Если забыли — попросите руководителя сбросить.', ERR_PIN_FORMAT:'PIN — это 4 цифры.', ERR_USER:'Пользователь не найден. Выберите себя заново.',
+    ERR_PIN:'Неверный PIN. Попробуйте ещё раз.', ERR_LOCKED:'Слишком много неверных PIN. Вход закрыт на 10 минут.', ERR_PAY_TO:'Выберите, куда положили деньги — другую кассу.', ERR_NO_PIN:'Нужно придумать PIN.', ERR_PIN_EXISTS:'PIN уже задан. Введите его. Если забыли — попросите руководителя сбросить.', ERR_PIN_FORMAT:'PIN — это 4 цифры.', ERR_USER:'Пользователь не найден. Выберите себя заново.',
     ERR_ROLE:'Это может делать только руководитель.', ERR_AMOUNT:'Сумма должна быть больше нуля.',
     ERR_AMOUNT_BIG:'Слишком большая сумма. Проверьте нули.', ERR_ARTICLE:'Такой статьи нет в справочнике. Закройте и откройте приложение заново.',
     ERR_PAY:'Такого способа оплаты нет в справочнике.', ERR_DATE:'Неверная дата.', ERR_DATE_FUTURE:'Дата не может быть позже сегодняшней.',
@@ -259,7 +259,7 @@ const T = {
     period:'Davr: {a} — {b}', comparedWith:'Taqqoslash: {a} — {b}', noData:'Bu davrda yozuvlar yoʻq',
     T_Расход:'Xarajat', T_Доход:'Daromad', T_Вложение:'Investitsiya', T_Перевод:'Oʻtkazma',
     ERR_NET:'Internet yoʻq yoki server javob bermadi. Internetni tekshiring va «Qaytadan» ni bosing.',
-    ERR_PIN:'PIN notoʻgʻri. Qaytadan urinib koʻring.', ERR_PAY_TO:'Pul qayerga qoʻyilganini tanlang — boshqa kassani.', ERR_NO_PIN:'PIN oʻylab topish kerak.', ERR_PIN_EXISTS:'PIN allaqachon bor. Uni kiriting. Unutgan boʻlsangiz, rahbardan tiklashni soʻrang.', ERR_PIN_FORMAT:'PIN — bu 4 ta raqam.', ERR_USER:'Foydalanuvchi topilmadi. Oʻzingizni qaytadan tanlang.',
+    ERR_PIN:'PIN notoʻgʻri. Qaytadan urinib koʻring.', ERR_LOCKED:'Notoʻgʻri PIN juda koʻp. Kirish 10 daqiqaga yopildi.', ERR_PAY_TO:'Pul qayerga qoʻyilganini tanlang — boshqa kassani.', ERR_NO_PIN:'PIN oʻylab topish kerak.', ERR_PIN_EXISTS:'PIN allaqachon bor. Uni kiriting. Unutgan boʻlsangiz, rahbardan tiklashni soʻrang.', ERR_PIN_FORMAT:'PIN — bu 4 ta raqam.', ERR_USER:'Foydalanuvchi topilmadi. Oʻzingizni qaytadan tanlang.',
     ERR_ROLE:'Buni faqat rahbar qila oladi.', ERR_AMOUNT:'Summa noldan katta boʻlishi kerak.',
     ERR_AMOUNT_BIG:'Summa juda katta. Nollarni tekshiring.', ERR_ARTICLE:'Bunday modda maʼlumotnomada yoʻq. Ilovani yopib, qayta oching.',
     ERR_PAY:'Bunday toʻlov usuli yoʻq.', ERR_DATE:'Sana notoʻgʻri.', ERR_DATE_FUTURE:'Sana bugundan keyin boʻlishi mumkin emas.',
@@ -421,7 +421,7 @@ function showPin(u, users, warn){
     S.pin = pin;
     doInit().catch(e => {
       S.pin = '';
-      if (e.code === 'ERR_PIN') showPin(u, users, t('ERR_PIN'));
+      if (e.code === 'ERR_PIN' || e.code === 'ERR_LOCKED') showPin(u, users, t(e.code));
       else showError(e.code, () => showPin(u, users), () => renderLogin(users));
     });
   });

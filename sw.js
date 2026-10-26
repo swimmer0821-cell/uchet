@@ -1,6 +1,6 @@
 /* Учёт денег — работа как приложение. Свои файлы берёт из сети, а без сети — из памяти телефона.
    Запросы к Google (Apps Script) не трогает. Папку sklad/ не трогает — у склада свой sw.js. */
-const CACHE = 'uchet-v2';
+const CACHE = 'uchet-v3';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png'];
 
 self.addEventListener('install', e => {

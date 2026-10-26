@@ -312,12 +312,45 @@ function listUsers_() {
 
 // Проверяем, что пользователь есть в справочнике и PIN верный.
 // Без PIN войти нельзя: сначала его нужно придумать (setPin_).
+// С 26.10.2026: PIN хранится в таблице только «отпечатком» (sha256), а после 5 неверных
+// попыток вход этого пользователя закрыт на 10 минут (защита от перебора 10 000 вариантов).
+// Старые PIN открытым текстом переводятся в отпечаток сами при первом успешном входе.
+const PIN_MAX_FAILS = 5;
+function pinHash_(name, pin) {
+  const b = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, 'uchet:' + name + ':' + pin, Utilities.Charset.UTF_8);
+  return b.map(x => ('0' + ((x + 256) % 256).toString(16)).slice(-2)).join('');
+}
+function isPinHash_(v) { return /^[0-9a-f]{64}$/.test(String(v || '')); }
+
 function auth_(name, pin) {
   const u = readRef_().users.find(x => x.name === String(name || '').trim());
   if (!u) throw new Error('ERR_USER');
   if (!u.pin) throw new Error('ERR_NO_PIN');
-  if (String(pin || '') !== u.pin) throw new Error('ERR_PIN');
+  const cache = CacheService.getScriptCache();
+  const key = 'pinfail_' + pinHash_(u.name, '').slice(0, 16);
+  const fails = Number(cache.get(key) || 0);
+  if (fails >= PIN_MAX_FAILS) throw new Error('ERR_LOCKED');
+  const p = String(pin || '');
+  const ok = isPinHash_(u.pin) ? pinHash_(u.name, p) === u.pin : p === u.pin;
+  if (!ok) { cache.put(key, String(fails + 1), 600); throw new Error('ERR_PIN'); }
+  if (fails) cache.remove(key);
+  if (!isPinHash_(u.pin)) storePinHash_(u.name, pinHash_(u.name, p));
   return u;
+}
+
+// Записать отпечаток PIN в лист «Справочники» (колонка Q) вместо открытого PIN
+function storePinHash_(name, hash) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    const sh = sheet_(SHEET_REF);
+    const v = sh.getDataRange().getValues();
+    for (let r = 1; r < v.length; r++) {
+      if (String(v[r][14] || '').trim() === name) { sh.getRange(r + 1, 17).setNumberFormat('@').setValue(hash); return; }
+    }
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 // Сохранить новый PIN. Можно только если PIN ещё не задан
@@ -333,7 +366,7 @@ function setPin_(name, newPin) {
     for (let r = 1; r < v.length; r++) {
       if (String(v[r][14] || '').trim() === String(name || '').trim() && String(name || '').trim()) {
         if (String(v[r][16] || '').trim()) throw new Error('ERR_PIN_EXISTS');
-        sh.getRange(r + 1, 17).setNumberFormat('@').setValue(pin);
+        sh.getRange(r + 1, 17).setNumberFormat('@').setValue(pinHash_(String(name).trim(), pin));
         SpreadsheetApp.flush();
         return { ok: true };
       }
