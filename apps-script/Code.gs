@@ -863,7 +863,7 @@ function syncSales() {
       const sheetPay = String(r[13] || '').trim();   // колонка N «Оплата»: менеджер выбрал в боте при «Оплачен»
       // Долг торгового агента (с 28.10.2026): «Отправлен», а «Оплата» пустая — денег ещё нет, доход не пишем.
       // Когда менеджер нажмёт «Оплачен», в колонке N появится способ оплаты — тогда запишем.
-      if (status === 'Отправлен' && !sheetPay && String(r[14] || '').trim() === 'Торговый агент') return;
+      if (status === 'Отправлен' && !sheetPay && String(r[14] || '').trim().indexOf('Торговый агент') === 0) return;   // и «(с машины)»
       if (SALES_PAID.indexOf(status) >= 0 && total > 0) {
         const date = ruDate_(r[9]) || ruDate_(r[1]) || today_();
         if (date < SALES_FROM) return;
