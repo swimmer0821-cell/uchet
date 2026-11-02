@@ -579,14 +579,14 @@ function editOp_(user, id, op) {
 
 
 // ===================== ИСТОРИЯ =====================
-// Руководитель видит все записи, сотрудник — только свои.
+// Руководитель видит все записи, сотрудник — свои и приходы из продаж (CRM).
 function history_(user, filter) {
   const now = Date.now();
   const res = [];
   const ops = readOps_(5000).reverse();
   for (let i = 0; i < ops.length && res.length < HISTORY_LIMIT; i++) {
     const o = ops[i];
-    if (user.role !== 'boss' && o.who !== user.name) continue;
+    if (user.role !== 'boss' && o.who !== user.name && o.who !== SALES_WHO) continue;
     if (filter.type && o.type !== filter.type) continue;
     if (filter.cat && o.cat !== filter.cat) continue;
     res.push({
