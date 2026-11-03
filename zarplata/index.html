@@ -1,0 +1,480 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#14313a">
+<title>Зарплата SUB PROFI</title>
+<script>
+/* ==========================================================
+   НАСТРОЙКИ
+   ========================================================== */
+const CONFIG = {
+  // Адрес веб-приложения Apps Script (заканчивается на /exec)
+  API_URL: 'ВСТАВЬТЕ_СЮДА_АДРЕС_APPS_SCRIPT',
+  TIMEOUT_SEC: 40
+};
+</script>
+<style>
+:root{
+  --bg:#ffffff; --ink:#0f1a1e; --muted:#4a5a60; --line:#b9c4c8; --soft:#eef2f3;
+  --bar:#14313a; --bar-ink:#ffffff;
+  --card:#2c4d73; --card-bg:#e6edf6; --cash:#156b34; --cash-bg:#e2f4e8;
+  --red:#a4161a; --red-bg:#fde9e8; --warn:#7a4b00; --warn-bg:#fff1cc;
+  --focus:#f2b705; --r:14px; color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:400 18px/1.4 Roboto,"Segoe UI",system-ui,-apple-system,sans-serif;-webkit-tap-highlight-color:transparent}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:4px solid var(--focus);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+.top{position:sticky;top:0;z-index:5;background:var(--bar);color:var(--bar-ink);display:flex;align-items:center;gap:12px;padding:10px 16px;padding-top:calc(10px + env(safe-area-inset-top,0px));min-height:64px}
+.top h1{font-size:20px;margin:0;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tbtn{background:transparent;border:2px solid rgba(255,255,255,.6);color:var(--bar-ink);border-radius:10px;min-height:46px;padding:6px 14px;font-weight:600;font-size:16px}
+main{padding:16px;padding-bottom:calc(32px + env(safe-area-inset-bottom,0px));max-width:900px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+h2{font-size:23px;margin:4px 0 0} h3{font-size:18px;margin:6px 0 0;color:var(--muted)}
+.hint{color:var(--muted);font-size:16px;margin:0}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
+.tile{border:2px solid var(--line);background:var(--bg);border-radius:var(--r);min-height:80px;padding:12px 14px;text-align:left;font-size:19px;font-weight:600}
+.display{border:3px solid var(--line);border-radius:var(--r);padding:12px;font-size:36px;font-weight:700;text-align:center;letter-spacing:.4em;background:var(--soft)}
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;max-width:420px}
+.key{min-height:66px;border:2px solid var(--line);border-radius:12px;background:var(--bg);font-size:28px;font-weight:600}
+.key.wide{font-size:18px}
+.btn{min-height:60px;padding:10px 20px;border-radius:var(--r);border:3px solid var(--ink);background:var(--ink);color:var(--bg);font-size:19px;font-weight:700;flex:1 1 200px}
+.btn.ghost{background:var(--bg);color:var(--ink)}
+.btn.card{background:var(--card);border-color:var(--card)} .btn.cash{background:var(--cash);border-color:var(--cash)}
+.btn.small{min-height:50px;font-size:17px;flex:0 1 auto}
+.btn:disabled{background:var(--soft);color:var(--muted);border-color:var(--line)}
+.actions{display:flex;flex-wrap:wrap;gap:12px}
+.warn{background:var(--warn-bg);color:var(--warn);border:2px solid var(--warn);border-radius:12px;padding:12px 14px;font-weight:600}
+.bad{background:var(--red-bg);color:var(--red);border:2px solid var(--red);border-radius:12px;padding:14px;font-weight:600}
+.ok{background:var(--cash-bg);color:var(--cash);border:2px solid var(--cash);border-radius:12px;padding:14px;font-weight:600}
+.loader{position:fixed;inset:0;background:rgba(15,26,30,.45);display:flex;align-items:center;justify-content:center;z-index:20}
+.loader div{background:var(--bg);border-radius:var(--r);padding:22px 30px;display:flex;align-items:center;gap:16px;font-size:20px;font-weight:600}
+.spin{width:34px;height:34px;border:5px solid var(--soft);border-top-color:var(--ink);border-radius:50%;animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* Месяц */
+.mnav{display:flex;align-items:center;gap:10px}
+.mnav h2{flex:1;text-align:center;margin:0}
+.mnav button{min-width:60px;min-height:56px;border:2px solid var(--line);border-radius:12px;background:var(--bg);font-size:26px;font-weight:700}
+.mnav button:disabled{opacity:.3}
+.sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.box{border:2px solid var(--line);border-radius:var(--r);padding:12px 14px}
+.box span{display:block;font-size:15px;color:var(--muted);font-weight:600}
+.box b{display:block;font-size:24px}
+.box small{display:block;font-size:14px;color:var(--muted)}
+.box.card{border-color:var(--card);background:var(--card-bg)} .box.card b{color:var(--card)}
+.box.cash{border-color:var(--cash);background:var(--cash-bg)} .box.cash b{color:var(--cash)}
+.box.left{border-color:var(--warn);background:var(--warn-bg)} .box.left b{color:var(--warn)}
+.search{width:100%;min-height:54px;border:2px solid var(--line);border-radius:12px;padding:8px 14px;font-size:18px}
+.list{display:flex;flex-direction:column;gap:10px}
+.emp{border:2px solid var(--line);border-radius:var(--r);padding:12px 14px;background:var(--bg);text-align:left;display:grid;grid-template-columns:1fr auto;gap:2px 12px;width:100%}
+.emp .n{font-weight:700;font-size:19px;min-width:0;overflow-wrap:anywhere}
+.emp .f{font-weight:800;font-size:20px;text-align:right}
+.emp .d{grid-column:1/-1;font-size:15px;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 14px}
+.c-card{color:var(--card)} .c-cash{color:var(--cash)} .c-red{color:var(--red)} .c-warn{color:var(--warn)}
+.tag{display:inline-block;border-radius:999px;padding:2px 10px;font-size:14px;font-weight:700;background:var(--warn-bg);color:var(--warn)}
+.tag.done{background:var(--cash-bg);color:var(--cash)}
+.tag.chk{background:var(--red-bg);color:var(--red)}
+
+/* Карточка сотрудника */
+.form{display:grid;gap:14px}
+@media (min-width:700px){.form.two{grid-template-columns:1fr 1fr}}
+.field{display:flex;flex-direction:column;gap:6px}
+.label{font-weight:700;font-size:17px} .label em{font-style:normal;font-weight:400;color:var(--muted)}
+.txt{width:100%;min-height:56px;border:2px solid var(--line);border-radius:12px;padding:8px 14px;font-size:20px;background:var(--bg)}
+.txt.money{text-align:right;font-weight:700}
+textarea.txt{min-height:80px;font-size:18px}
+.chips{display:flex;flex-wrap:wrap;gap:10px}
+.chip{min-height:52px;padding:8px 16px;border:2px solid var(--line);border-radius:12px;background:var(--bg);font-size:17px;font-weight:600}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.stepper{display:flex;align-items:center;gap:10px}
+.stepper button{width:60px;height:56px;border:2px solid var(--line);border-radius:12px;background:var(--bg);font-size:28px;font-weight:700}
+.stepper .txt{width:7em;text-align:center}
+.calc{border:2px solid var(--line);border-radius:var(--r);overflow:hidden}
+.calc div{display:flex;justify-content:space-between;gap:12px;padding:10px 14px;border-bottom:1px solid var(--soft)}
+.calc div:last-child{border-bottom:0}
+.calc .t{font-weight:800;font-size:20px}
+.calc .cardrow{background:var(--card-bg)} .calc .cashrow{background:var(--cash-bg)}
+details{border:2px dashed var(--line);border-radius:12px;padding:10px 14px}
+summary{font-weight:700;cursor:pointer;min-height:36px}
+.pays{display:flex;flex-direction:column;gap:8px}
+.pay{display:flex;align-items:center;gap:10px;border:2px solid var(--soft);border-radius:12px;padding:8px 12px}
+.pay .w{flex:1;min-width:0} .pay .w small{display:block;color:var(--muted);font-size:14px}
+.pay.off{opacity:.5;text-decoration:line-through}
+.pay button{min-height:44px;border:2px solid var(--line);border-radius:10px;background:var(--bg);padding:4px 12px;font-size:15px;font-weight:600}
+.dlg{border:3px solid var(--ink);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:12px;background:var(--soft)}
+.stamp{color:var(--muted);font-size:14px}
+</style>
+</head>
+<body>
+<header class="top">
+  <button class="tbtn" id="backBtn" type="button" hidden>Назад</button>
+  <h1 id="title">Зарплата SUB PROFI</h1>
+  <button class="tbtn" id="outBtn" type="button" hidden>Выйти</button>
+</header>
+<main id="app" aria-live="polite"></main>
+<div class="loader" id="loader" hidden><div><span class="spin" aria-hidden="true"></span><span id="loaderText">Загрузка…</span></div></div>
+
+<script>
+const $app = document.getElementById('app');
+const MONTHS = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+const ERR = {
+  ERR_NET:'Нет связи с интернетом или сервер не ответил. Попробуйте ещё раз.', ERR_CONFIG:'В приложении не указан адрес сервера.',
+  ERR_PIN:'Неверный PIN. Попробуйте ещё раз.', ERR_USER:'Пользователь не найден.', ERR_NO_PIN:'Нужно придумать PIN.',
+  ERR_PIN_EXISTS:'PIN уже задан. Если забыли — попросите руководителя очистить ячейку PIN в таблице.', ERR_PIN_FORMAT:'PIN — это 4 цифры.',
+  ERR_AMOUNT:'Проверьте сумму.', ERR_DATE:'Проверьте дату: она не может быть в будущем.', ERR_QTY:'Проверьте количество смен или дней.',
+  ERR_NAME:'Напишите имя.', ERR_NOT_FOUND:'Запись не найдена. Обновите экран.', ERR_SETUP:'Таблица не настроена.', ERR_DATA:'Ошибка данных. Обновите экран.',
+  ERR_NO_EMPS:'Нет сотрудников. Добавьте их в разделе «Сотрудники».'
+};
+const S = { user: load('user'), pin: load('pin') || '', ref: null, month: null, data: null, q: '' };
+
+function load(k){ try { return localStorage.getItem('zp_' + k); } catch(e){ return null; } }
+function store(k, v){ try { v == null ? localStorage.removeItem('zp_' + k) : localStorage.setItem('zp_' + k, v); } catch(e){} }
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function money(n){ const v = Math.round(Number(n) || 0); return (v < 0 ? '−' : '') + String(Math.abs(v)).replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
+function digits(s){ return Number(String(s || '').replace(/[^\d]/g, '')) || 0; }
+function mName(m){ if (!m) return ''; return MONTHS[Number(m.slice(5)) - 1] + ' ' + m.slice(0, 4); }
+function mShift(m, d){ let y = Number(m.slice(0, 4)), mo = Number(m.slice(5)) + d; while (mo > 12) { mo -= 12; y++; } while (mo < 1) { mo += 12; y--; } return y + '-' + String(mo).padStart(2, '0'); }
+function fmtDate(s){ return s ? s.slice(8, 10) + '.' + s.slice(5, 7) + '.' + s.slice(0, 4) : ''; }
+function newId(){ return (crypto.randomUUID ? crypto.randomUUID() : Date.now() + '-' + Math.random().toString(16).slice(2)); }
+
+async function api(action, extra, text){
+  if (!CONFIG.API_URL || CONFIG.API_URL.indexOf('ВСТАВЬТЕ') === 0) throw { code: 'ERR_CONFIG' };
+  loader(true, text);
+  const ctrl = new AbortController(), tm = setTimeout(() => ctrl.abort(), CONFIG.TIMEOUT_SEC * 1000);
+  try {
+    const res = await fetch(CONFIG.API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(Object.assign({ action, user: S.user, pin: S.pin }, extra || {})), signal: ctrl.signal });
+    const j = await res.json();
+    if (!j.ok) throw { code: j.error || 'ERR_DATA' };
+    return j.data;
+  } catch (e) { if (e && e.code) throw e; throw { code: 'ERR_NET' }; }
+  finally { clearTimeout(tm); loader(false); }
+}
+function loader(on, t){ document.getElementById('loader').hidden = !on; document.getElementById('loaderText').textContent = t || 'Загрузка…'; }
+
+function screen(title, html, back){
+  document.getElementById('title').textContent = title;
+  const b = document.getElementById('backBtn'); b.hidden = !back; b.onclick = back || null;
+  document.getElementById('outBtn').hidden = !S.ref;
+  $app.innerHTML = html; window.scrollTo(0, 0);
+}
+function showError(code, retry, back){
+  if ((code === 'ERR_PIN' || code === 'ERR_NO_PIN' || code === 'ERR_USER') && S.ref) { logout(); return showLogin(); }
+  screen('Ошибка', `<div class="bad" role="alert">${esc(ERR[code] || ERR.ERR_DATA)}</div>
+    <div class="actions">${retry ? '<button class="btn" id="eR" type="button">Повторить</button>' : ''}<button class="btn ghost" id="eB" type="button">Назад</button></div>`, back || null);
+  if (retry) document.getElementById('eR').onclick = retry;
+  document.getElementById('eB').onclick = back || showMonth;
+}
+document.getElementById('outBtn').onclick = () => { logout(); showLogin(); };
+function logout(){ S.user = null; S.pin = ''; S.ref = null; store('user', null); store('pin', null); }
+
+/* ================= ВХОД ================= */
+async function start(){
+  if (S.user && S.pin) { try { return await doInit(); } catch (e) { if (e.code !== 'ERR_NET') logout(); else return showError(e.code, start); } }
+  showLogin();
+}
+async function doInit(){
+  S.ref = await api('init');
+  store('user', S.user); store('pin', S.pin);
+  const ms = S.ref.months;
+  S.month = S.month && ms.includes(S.month) ? S.month : (ms[ms.length - 1] || S.ref.today.slice(0, 7));
+  await openMonth(S.month);
+}
+async function showLogin(){
+  let users;
+  try { users = await api('users'); } catch (e) { return showError(e.code, showLogin); }
+  screen('Зарплата SUB PROFI', `<h2>Кто вы?</h2><p class="hint">Нажмите на своё имя</p>
+    <div class="tiles">${users.map((u, i) => `<button class="tile" type="button" data-i="${i}">${esc(u.name)}</button>`).join('')}</div>`);
+  $app.querySelectorAll('[data-i]').forEach(b => b.onclick = () => {
+    const u = users[+b.dataset.i]; S.user = u.name;
+    u.hasPin ? pinScreen(u.name, 'Введите PIN', '', enterPin) : pinScreen(u.name, 'Первый вход. Придумайте PIN из 4 цифр', '', newPin1);
+  });
+}
+function pinScreen(title, hint, warn, done){
+  let pin = '';
+  const draw = () => {
+    screen(title, `<h2>${esc(hint)}</h2>${warn ? `<div class="warn" role="alert">${esc(warn)}</div>` : ''}
+      <div class="display" aria-live="polite">${'●'.repeat(pin.length)}${'○'.repeat(4 - pin.length)}</div>
+      <div class="pad">${[1,2,3,4,5,6,7,8,9].map(n => `<button class="key" type="button" data-k="${n}">${n}</button>`).join('')}
+      <span></span><button class="key" type="button" data-k="0">0</button><button class="key wide" type="button" data-k="del">Стереть</button></div>`, showLogin);
+    $app.querySelectorAll('[data-k]').forEach(b => b.onclick = () => {
+      const k = b.dataset.k;
+      if (k === 'del') { pin = pin.slice(0, -1); return draw(); }
+      if (pin.length >= 4) return;
+      pin += k; draw();
+      if (pin.length === 4) setTimeout(() => done(pin), 120);
+    });
+  };
+  draw();
+}
+async function enterPin(pin){
+  S.pin = pin;
+  try { await doInit(); }
+  catch (e) { S.pin = ''; e.code === 'ERR_PIN' ? pinScreen(S.user, 'Введите PIN', ERR.ERR_PIN, enterPin) : showError(e.code, null, showLogin); }
+}
+function newPin1(p1){
+  pinScreen(S.user, 'Повторите PIN', '', async (p2) => {
+    if (p1 !== p2) return pinScreen(S.user, 'Первый вход. Придумайте PIN из 4 цифр', 'PIN не совпал. Придумайте ещё раз.', newPin1);
+    try { await api('setPin', { newPin: p1 }, 'Сохраняю…'); await enterPin(p1); }
+    catch (e) { showError(e.code, null, showLogin); }
+  });
+}
+
+/* ================= МЕСЯЦ ================= */
+async function openMonth(m){
+  S.month = m;
+  try { S.data = S.ref.months.includes(m) ? await api('month', { month: m }) : null; }
+  catch (e) { return showError(e.code, () => openMonth(m)); }
+  showMonth();
+}
+function leftTag(r){
+  const l = r.leftCard + r.leftCash;
+  if (r.comment && /сверить|уточнить/i.test(r.comment) || /сверить|уточнить/i.test(empOf(r.empId).comment || '')) return '<span class="tag chk">проверить</span>';
+  if (l <= 0) return '<span class="tag done">выдано</span>';
+  return `<span class="tag">осталось ${money(l)}</span>`;
+}
+function empOf(id){ return (S.ref.emps || []).find(e => e.id === id) || {}; }
+function showMonth(){
+  const ms = S.ref.months, m = S.month, d = S.data;
+  const i = ms.indexOf(m), last = ms[ms.length - 1];
+  const nav = `<div class="mnav"><button type="button" id="mPrev" aria-label="Прошлый месяц" ${i <= 0 && (!last || m <= ms[0]) ? 'disabled' : ''}>‹</button>
+    <h2>${esc(mName(m))}</h2><button type="button" id="mNext" aria-label="Следующий месяц" ${!last || m >= last ? 'disabled' : ''}>›</button></div>`;
+  const nextM = last ? mShift(last, 1) : m;
+  const canOpen = !d || m === last;
+  if (!d) {
+    screen('Зарплата', `${nav}<div class="warn">${esc(mName(m))} ещё не открыт.</div>
+      <div class="actions"><button class="btn" id="mOpen" type="button">Открыть ${esc(mName(m))}</button>
+      <button class="btn ghost" id="mEmps" type="button">Сотрудники</button></div>`);
+    bindNav(); document.getElementById('mOpen').onclick = () => openNew(m);
+    document.getElementById('mEmps').onclick = showEmps; return;
+  }
+  const t = d.total, q = S.q.trim().toLowerCase();
+  const rows = d.rows.filter(r => !q || (r.name + ' ' + (empOf(r.empId).fio || '')).toLowerCase().includes(q));
+  const prevT = S.prevTotal && S.prevTotal.month === mShift(m, -1) ? S.prevTotal : null;
+  const diff = prevT ? t.full - prevT.full : null;
+  screen('Зарплата', `${nav}
+    <div class="sum">
+      <div class="box"><span>Фонд зарплаты</span><b class="num">${money(t.full)}</b><small>${t.people} чел.${diff !== null ? ' · к прошлому: ' + (diff > 0 ? '+' : '') + money(diff) : ''}</small></div>
+      <div class="box card"><span>На карту</span><b class="num">${money(t.card)}</b><small>налог 12%: ${money(t.tax)}</small></div>
+      <div class="box cash"><span>Наличными</span><b class="num">${money(t.cash)}</b></div>
+      <div class="box left"><span>Осталось выдать</span><b class="num">${money(t.leftCard + t.leftCash)}</b><small>карта ${money(t.leftCard)} · нал ${money(t.leftCash)}</small></div>
+    </div>
+    <input class="search" id="q" type="search" placeholder="Поиск по имени" value="${esc(S.q)}" aria-label="Поиск по имени">
+    <div class="list">${rows.length ? rows.map(r => `<button class="emp" type="button" data-id="${esc(r.empId)}">
+        <span class="n">${esc(r.name)}</span><span class="f num">${money(r.full)}</span>
+        <span class="d"><span class="c-card num">карта ${money(r.card)}</span><span class="c-cash num">нал ${money(r.cash)}</span>
+        ${r.type !== 'Месяц' ? `<span>${esc(r.qty || 0)} ${r.type === 'Смена' ? 'смен' : 'дн.'}</span>` : ''}${leftTag(r)}</span></button>`).join('')
+      : '<p class="hint">Никого не найдено.</p>'}</div>
+    <div class="actions">
+      ${m === last ? `<button class="btn" id="mOpen" type="button">Открыть ${esc(mName(nextM))}</button>` : ''}
+      <button class="btn ghost" id="mEmps" type="button">Сотрудники</button>
+    </div>
+    <details><summary>Выдать всем сразу</summary>
+      <p class="hint">Запишет выплату на весь остаток каждому сотруднику, сегодняшней датой.</p>
+      <div class="actions"><button class="btn card small" id="allCard" type="button" ${t.leftCard > 0 ? '' : 'disabled'}>Всем на карту: ${money(Math.max(0, t.leftCard))}</button>
+      <button class="btn cash small" id="allCash" type="button" ${t.leftCash > 0 ? '' : 'disabled'}>Всем наличными: ${money(Math.max(0, t.leftCash))}</button></div>
+      <div id="allAsk"></div>
+    </details>`);
+  bindNav();
+  const qi = document.getElementById('q');
+  qi.oninput = () => { S.q = qi.value; const pos = qi.selectionStart; showMonth(); const n = document.getElementById('q'); n.focus(); n.setSelectionRange(pos, pos); };
+  $app.querySelectorAll('[data-id]').forEach(b => b.onclick = () => showRow(b.dataset.id));
+  if (document.getElementById('mOpen')) document.getElementById('mOpen').onclick = () => openNew(nextM);
+  document.getElementById('mEmps').onclick = showEmps;
+  [['allCard', 'Карта'], ['allCash', 'Наличные']].forEach(([id, kind]) => document.getElementById(id).onclick = () => {
+    const box = document.getElementById('allAsk');
+    box.innerHTML = `<div class="dlg"><b>Записать, что всем выдано (${kind === 'Карта' ? 'на карту' : 'наличными'})?</b>
+      <div class="actions"><button class="btn" id="allYes" type="button">Да, записать</button><button class="btn ghost" id="allNo" type="button">Нет</button></div></div>`;
+    document.getElementById('allNo').onclick = () => { box.innerHTML = ''; };
+    document.getElementById('allYes').onclick = async () => {
+      try { await api('payAll', { month: m, kind }, 'Записываю…'); await openMonth(m); } catch (e) { showError(e.code, null, showMonth); }
+    };
+  });
+}
+function bindNav(){
+  const ms = S.ref.months;
+  document.getElementById('mPrev').onclick = () => { const i = ms.indexOf(S.month); remember(); openMonth(i > 0 ? ms[i - 1] : ms[ms.length - 1]); };
+  document.getElementById('mNext').onclick = () => { const i = ms.indexOf(S.month); remember(); openMonth(ms[i + 1]); };
+}
+function remember(){ if (S.data) S.prevTotal = Object.assign({ month: S.data.month }, S.data.total); }
+async function openNew(m){
+  try { await api('newMonth', { month: m }, 'Открываю месяц…'); remember(); S.ref = await api('init'); await openMonth(m); }
+  catch (e) { showError(e.code, null, showMonth); }
+}
+
+/* ================= СОТРУДНИК В МЕСЯЦЕ ================= */
+function showRow(empId){
+  const r = S.data.rows.find(x => x.empId === empId); if (!r) return showMonth();
+  const e = empOf(empId);
+  const f = { type: r.type, rate: r.rate, qty: r.qty === '' ? '' : r.qty, full: r.full, card: r.card, comment: r.comment, manual: false };
+  const pays = S.data.pays.filter(p => p.empId === empId);
+  const calcFull = () => f.type === 'Месяц' ? f.rate : Math.round(f.rate * (Number(f.qty) || 0));
+  f.manual = r.full !== calcFull();
+  const calcHtml = () => { const full = f.full, cash = Math.max(0, full - f.card), gross = Math.round(f.card / 0.88); return `<div class="calc">
+        <div class="cardrow"><span>На карту</span><span class="num">${money(f.card)}</span></div>
+        <div class="cashrow"><span>Наличными</span><span class="num">${money(cash)}</span></div>
+        ${f.card > full ? '<div><span class="c-red">На карту больше полной ЗП — проверьте</span><span></span></div>' : ''}
+        ${r.prevCard || r.prevCash ? `<div><span>Долг с прошлого месяца</span><span class="num">карта ${money(r.prevCard)} · нал ${money(r.prevCash)}</span></div>` : ''}
+        <div><span>Выдано</span><span class="num">карта ${money(r.paidCard)} · нал ${money(r.paidCash)}</span></div>
+        <div class="t"><span>Осталось выдать</span><span class="num">${money(r.leftCard + r.leftCash)}</span></div>
+      </div>
+      <details><summary>Официальная часть (для бухгалтера)</summary>
+        <div class="calc" style="margin-top:8px"><div><span>Начислено</span><span class="num">${money(gross)}</span></div>
+        <div><span>Налог 12% (в т.ч. ИНПС 0,1% — ${money(Math.round(gross * 0.001))})</span><span class="num">${money(gross - f.card)}</span></div>
+        <div class="t"><span>На карту</span><span class="num">${money(f.card)}</span></div></div>
+      </details>`; };
+  const isDirty = () => f.type !== r.type || f.rate !== r.rate || String(f.qty) !== String(r.qty) || f.full !== r.full || f.card !== r.card || f.comment !== r.comment;
+  const refresh = () => {
+    document.getElementById('calcBox').innerHTML = calcHtml();
+    const fu = document.getElementById('full'); if (fu && document.activeElement !== fu) fu.value = money(f.full);
+    const lab = document.querySelector('label[for=full] em'); if (lab) lab.textContent = f.manual ? '(вписана вручную)' : '(считается сама)';
+    const sv = document.getElementById('save'); const d = isDirty(); sv.disabled = !d; sv.textContent = d ? 'Сохранить' : 'Сохранено';
+  };
+  const draw = () => {
+    const full = f.full, dirty = isDirty();
+    screen(r.name, `
+      <div><h2>${esc(r.name)}</h2><p class="hint">${esc([e.fio && e.fio !== r.name ? e.fio : '', e.role, mName(S.data.month)].filter(Boolean).join(' · '))}</p></div>
+      ${e.comment ? `<div class="warn">${esc(e.comment)}</div>` : ''}
+      <div class="field"><span class="label">Как считается</span>
+        <div class="chips">${['Месяц', 'Смена', 'День'].map(x => `<button class="chip" type="button" data-t="${x}" aria-pressed="${f.type === x}">${x === 'Месяц' ? 'Оклад за месяц' : x === 'Смена' ? 'За смену' : 'За день'}</button>`).join('')}</div></div>
+      <div class="form two">
+        <div class="field"><label class="label" for="rate">${f.type === 'Месяц' ? 'Оклад за месяц' : f.type === 'Смена' ? 'Ставка за смену' : 'Ставка за день'}</label>
+          <input class="txt money num" id="rate" inputmode="numeric" value="${money(f.rate)}"></div>
+        ${f.type !== 'Месяц' ? `<div class="field"><label class="label" for="qty">${f.type === 'Смена' ? 'Смен за месяц' : 'Рабочих дней'}</label>
+          <div class="stepper"><button type="button" id="qm" aria-label="Меньше">−</button><input class="txt num" id="qty" inputmode="numeric" value="${esc(f.qty)}"><button type="button" id="qp" aria-label="Больше">+</button></div></div>` : '<div></div>'}
+        <div class="field"><label class="label" for="full">Полная ЗП <em>${f.manual ? '(вписана вручную)' : '(считается сама)'}</em></label>
+          <input class="txt money num" id="full" inputmode="numeric" value="${money(full)}"></div>
+        <div class="field"><label class="label" for="card">На карту <em>(официально, на руки)</em></label>
+          <input class="txt money num" id="card" inputmode="numeric" value="${money(f.card)}"></div>
+      </div>
+      <div id="calcBox">${calcHtml()}</div>
+      <div class="field"><label class="label" for="cmt">Комментарий <em>(необязательно)</em></label><textarea class="txt" id="cmt" maxlength="300">${esc(f.comment)}</textarea></div>
+      <div class="actions"><button class="btn" id="save" type="button" ${dirty ? '' : 'disabled'}>${dirty ? 'Сохранить' : 'Сохранено'}</button></div>
+      ${r.by ? `<p class="stamp">Последний раз менял: ${esc(r.by)}${r.at ? ', ' + esc(r.at) : ''}</p>` : ''}
+
+      <h2>Выплаты</h2>
+      <div class="pays">${pays.length ? pays.map(p => `<div class="pay ${p.cancelled ? 'off' : ''}"><div class="w"><b class="${p.kind === 'Карта' ? 'c-card' : 'c-cash'}">${p.kind === 'Карта' ? 'Карта' : 'Наличные'} · <span class="num">${money(p.sum)}</span></b>
+          <small>${esc(fmtDate(p.date))} · ${esc(p.by)}${p.comment ? ' · ' + esc(p.comment) : ''}${p.cancelled ? ' · отменена' : ''}</small></div>
+          ${p.cancelled ? '' : `<button type="button" data-cancel="${esc(p.id)}">Отменить</button>`}</div>`).join('') : '<p class="hint">Выплат пока нет.</p>'}</div>
+      <div id="addBox"></div>
+      <div class="actions">
+        <button class="btn card small" type="button" id="aCard">+ Выдано на карту</button>
+        <button class="btn cash small" type="button" id="aCash">+ Выдано наличными</button>
+      </div>`, () => openMonth(S.data.month));
+
+    $app.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { keep(); f.type = b.dataset.t; if (f.type !== 'Месяц' && f.qty === '') f.qty = 0; if (!f.manual) f.full = calcFull(); draw(); });
+    const num = (id, key, after) => { const el = document.getElementById(id); if (!el) return;
+      el.oninput = () => { f[key] = digits(el.value); if (after) after(); refresh(); };
+      el.onblur = () => { el.value = money(f[key]); }; };
+    num('rate', 'rate', () => { if (!f.manual) f.full = calcFull(); });
+    num('full', 'full', () => { f.manual = f.full !== calcFull(); });
+    num('card', 'card');
+    const qty = document.getElementById('qty');
+    if (qty) {
+      qty.oninput = () => { f.qty = Math.min(31, digits(qty.value)); if (!f.manual) f.full = calcFull(); refresh(); };
+      document.getElementById('qm').onclick = () => { keep(); f.qty = Math.max(0, (Number(f.qty) || 0) - 1); if (!f.manual) f.full = calcFull(); draw(); };
+      document.getElementById('qp').onclick = () => { keep(); f.qty = Math.min(31, (Number(f.qty) || 0) + 1); if (!f.manual) f.full = calcFull(); draw(); };
+    }
+    document.getElementById('cmt').oninput = (ev) => { f.comment = ev.target.value; refresh(); };
+    document.getElementById('save').onclick = async () => {
+      keep();
+      try {
+        await api('saveRow', { row: { month: S.data.month, empId, type: f.type, rate: f.rate, qty: f.type === 'Месяц' ? '' : f.qty, full: f.full, card: f.card, comment: f.comment } }, 'Сохраняю…');
+        await reloadRow(empId);
+      } catch (er) { showError(er.code, null, () => showRow(empId)); }
+    };
+    $app.querySelectorAll('[data-cancel]').forEach(b => b.onclick = () => {
+      const box = document.getElementById('addBox');
+      box.innerHTML = `<div class="dlg"><b>Отменить эту выплату?</b><p class="hint" style="margin:0">Она останется в таблице зачёркнутой.</p>
+        <div class="actions"><button class="btn" id="cYes" type="button">Да, отменить</button><button class="btn ghost" id="cNo" type="button">Нет</button></div></div>`;
+      box.scrollIntoView({ block: 'center' });
+      document.getElementById('cNo').onclick = () => { box.innerHTML = ''; };
+      document.getElementById('cYes').onclick = async () => { try { await api('cancelPay', { id: b.dataset.cancel }, 'Отменяю…'); await reloadRow(empId); } catch (er) { showError(er.code, null, () => showRow(empId)); } };
+    });
+    const addForm = (kind) => {
+      const left = kind === 'Карта' ? r.leftCard : r.leftCash;
+      const box = document.getElementById('addBox');
+      box.innerHTML = `<div class="dlg"><b>${kind === 'Карта' ? 'Выдано на карту' : 'Выдано наличными'}</b>
+        <div class="form two"><div class="field"><label class="label" for="pSum">Сумма</label><input class="txt money num" id="pSum" inputmode="numeric" value="${money(Math.max(0, left))}"></div>
+        <div class="field"><label class="label" for="pDate">Дата</label><input class="txt" type="date" id="pDate" value="${esc(S.ref.today)}" max="${esc(S.ref.today)}"></div></div>
+        <div class="field"><label class="label" for="pCmt">Комментарий <em>(например, аванс)</em></label><input class="txt" id="pCmt" maxlength="200"></div>
+        <div class="actions"><button class="btn ${kind === 'Карта' ? 'card' : 'cash'}" id="pOk" type="button">Записать</button><button class="btn ghost" id="pNo" type="button">Отмена</button></div></div>`;
+      box.scrollIntoView({ block: 'center' });
+      const sumEl = document.getElementById('pSum');
+      sumEl.onblur = () => { sumEl.value = money(digits(sumEl.value)); };
+      document.getElementById('pNo').onclick = () => { box.innerHTML = ''; };
+      const pid = newId();
+      document.getElementById('pOk').onclick = async () => {
+        const sum = digits(sumEl.value), date = document.getElementById('pDate').value;
+        if (!sum) return sumEl.focus();
+        try { await api('addPay', { pay: { id: pid, month: S.data.month, empId, kind, sum, date, comment: document.getElementById('pCmt').value } }, 'Записываю…'); await reloadRow(empId); }
+        catch (er) { showError(er.code, null, () => showRow(empId)); }
+      };
+    };
+    document.getElementById('aCard').onclick = () => addForm('Карта');
+    document.getElementById('aCash').onclick = () => addForm('Наличные');
+  };
+  const keep = () => { const c = document.getElementById('cmt'); if (c) f.comment = c.value; };
+  draw();
+}
+async function reloadRow(empId){
+  try { S.data = await api('month', { month: S.data.month }); } catch (e) { return showError(e.code, () => reloadRow(empId)); }
+  showRow(empId);
+}
+
+/* ================= СОТРУДНИКИ ================= */
+function showEmps(){
+  const emps = S.ref.emps;
+  const act = emps.filter(e => e.active), off = emps.filter(e => !e.active);
+  const item = e => `<button class="emp" type="button" data-e="${esc(e.id)}"><span class="n">${esc(e.name)}</span>
+    <span class="f num">${money(e.rate)}${e.type === 'Смена' ? ' / смена' : e.type === 'День' ? ' / день' : ''}</span>
+    <span class="d">${e.fio ? `<span>${esc(e.fio)}</span>` : ''}${e.role ? `<span>${esc(e.role)}</span>` : ''}<span class="c-card num">карта ${money(e.card)}</span></span></button>`;
+  screen('Сотрудники', `<h2>Сотрудники</h2><p class="hint">Здесь — оклад и сумма на карту по умолчанию. Их берёт каждый новый месяц.</p>
+    <div class="actions"><button class="btn" id="eAdd" type="button">+ Новый сотрудник</button></div>
+    <div class="list">${act.map(item).join('')}</div>
+    ${off.length ? `<h3>Не работают</h3><div class="list">${off.map(item).join('')}</div>` : ''}`, showMonth);
+  document.getElementById('eAdd').onclick = () => editEmp(null);
+  $app.querySelectorAll('[data-e]').forEach(b => b.onclick = () => editEmp(emps.find(e => e.id === b.dataset.e)));
+}
+function editEmp(e){
+  const f = e ? Object.assign({}, e) : { id: '', name: '', fio: '', role: '', type: 'Месяц', rate: 0, card: 0, active: true, comment: '' };
+  const draw = () => {
+    screen(e ? e.name : 'Новый сотрудник', `
+      <div class="form two">
+        <div class="field"><label class="label" for="fName">Имя</label><input class="txt" id="fName" maxlength="60" value="${esc(f.name)}"></div>
+        <div class="field"><label class="label" for="fFio">ФИО официально <em>(необязательно)</em></label><input class="txt" id="fFio" maxlength="80" value="${esc(f.fio)}"></div>
+        <div class="field"><label class="label" for="fRole">Должность <em>(необязательно)</em></label><input class="txt" id="fRole" maxlength="80" value="${esc(f.role)}"></div>
+      </div>
+      <div class="field"><span class="label">Как считается</span><div class="chips">${['Месяц', 'Смена', 'День'].map(x => `<button class="chip" type="button" data-t="${x}" aria-pressed="${f.type === x}">${x === 'Месяц' ? 'Оклад за месяц' : x === 'Смена' ? 'За смену' : 'За день'}</button>`).join('')}</div></div>
+      <div class="form two">
+        <div class="field"><label class="label" for="fRate">${f.type === 'Месяц' ? 'Оклад за месяц' : f.type === 'Смена' ? 'Ставка за смену' : 'Ставка за день'}</label><input class="txt money num" id="fRate" inputmode="numeric" value="${money(f.rate)}"></div>
+        <div class="field"><label class="label" for="fCard">На карту <em>(обычно)</em></label><input class="txt money num" id="fCard" inputmode="numeric" value="${money(f.card)}"></div>
+      </div>
+      <div class="field"><label class="label" for="fCmt">Комментарий <em>(необязательно)</em></label><textarea class="txt" id="fCmt" maxlength="300">${esc(f.comment)}</textarea></div>
+      ${e ? `<div class="field"><span class="label">Работает?</span><div class="chips"><button class="chip" type="button" data-a="1" aria-pressed="${f.active}">Работает</button><button class="chip" type="button" data-a="0" aria-pressed="${!f.active}">Уволен</button></div></div>` : '<p class="hint">Новый сотрудник сразу появится в последнем открытом месяце.</p>'}
+      <div class="actions"><button class="btn" id="fSave" type="button">Сохранить</button></div>`, showEmps);
+    const keep = () => { f.name = document.getElementById('fName').value; f.fio = document.getElementById('fFio').value; f.role = document.getElementById('fRole').value;
+      f.rate = digits(document.getElementById('fRate').value); f.card = digits(document.getElementById('fCard').value); f.comment = document.getElementById('fCmt').value; };
+    $app.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { keep(); f.type = b.dataset.t; draw(); });
+    $app.querySelectorAll('[data-a]').forEach(b => b.onclick = () => { keep(); f.active = b.dataset.a === '1'; draw(); });
+    ['fRate', 'fCard'].forEach(id => { const el = document.getElementById(id); el.onblur = () => { el.value = money(digits(el.value)); }; });
+    document.getElementById('fSave').onclick = async () => {
+      keep();
+      if (!f.name.trim()) return document.getElementById('fName').focus();
+      try { await api('saveEmp', { emp: f }, 'Сохраняю…'); S.ref = await api('init'); if (S.ref.months.includes(S.month)) S.data = await api('month', { month: S.month }); showEmps(); }
+      catch (er) { showError(er.code, null, showEmps); }
+    };
+  };
+  draw();
+}
+
+start();
+</script>
+</body>
+</html>
