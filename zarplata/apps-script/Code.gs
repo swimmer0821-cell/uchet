@@ -13,6 +13,8 @@
  *   На карту       = официальная часть «на руки» (уже после налога)
  *   Наличными      = Полная ЗП − На карту
  *   Официально начислено = На карту ÷ 0,88;  налог 12% = начислено − на карту
+ *   Соцналог 12% от начисления платит компания сверху
+ *   Затраты на зарплату (для себестоимости) = Полная ЗП + налог 12% + соцналог 12%
  *   Осталось выдать = (к выдаче + долг прошлого месяца) − выплаты
  *  Отменённые выплаты не считаются и не удаляются.
  * =============================================================
@@ -25,6 +27,7 @@ const SH_USERS = 'Пользователи';
 const TIMEZONE = 'Asia/Tashkent';
 const TAX = 0.12;          // подоходный налог + ИНПС
 const INPS = 0.001;        // ИНПС внутри 12%
+const SOC = 0.12;          // социальный налог, платит компания сверх начисления
 const CANCELLED = 'Отменена';
 const TYPES = ['Месяц', 'Смена', 'День'];
 const PAY_KINDS = ['Карта', 'Наличные'];
@@ -180,7 +183,8 @@ function month_(m) {
       return Object.assign({}, r, {
         cash: cash, prevCard: c.card, prevCash: c.cash, paidCard: paidCard, paidCash: paidCash,
         leftCard: r.card + c.card - paidCard, leftCash: cash + c.cash - paidCash,
-        gross: gross, tax: gross - r.card, inps: Math.round(gross * INPS)
+        gross: gross, tax: gross - r.card, inps: Math.round(gross * INPS), soc: Math.round(gross * SOC),
+        cost: r.full + (gross - r.card) + Math.round(gross * SOC)
       });
     });
     const next = {};
@@ -195,7 +199,7 @@ function month_(m) {
   return {
     month: m, rows: result,
     pays: readPays_().filter(p => p.month === m),
-    total: { full: t('full'), card: t('card'), cash: t('cash'), gross: t('gross'), tax: t('tax'), cost: t('full') + t('tax'),
+    total: { full: t('full'), card: t('card'), cash: t('cash'), gross: t('gross'), tax: t('tax'), soc: t('soc'), cost: t('cost'),
       paidCard: t('paidCard'), paidCash: t('paidCash'), leftCard: t('leftCard'), leftCash: t('leftCash'), people: result.length }
   };
 }
