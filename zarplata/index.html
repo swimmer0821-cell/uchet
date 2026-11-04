@@ -129,7 +129,8 @@ const ERR = {
   ERR_PIN_EXISTS:'PIN уже задан. Если забыли — попросите руководителя очистить ячейку PIN в таблице.', ERR_PIN_FORMAT:'PIN — это 4 цифры.',
   ERR_AMOUNT:'Проверьте сумму.', ERR_DATE:'Проверьте дату: она не может быть в будущем.', ERR_QTY:'Проверьте количество смен или дней.',
   ERR_NAME:'Напишите имя.', ERR_NOT_FOUND:'Запись не найдена. Обновите экран.', ERR_SETUP:'Таблица не настроена.', ERR_DATA:'Ошибка данных. Обновите экран.',
-  ERR_NO_EMPS:'Нет сотрудников. Добавьте их в разделе «Сотрудники».'
+  ERR_NO_EMPS:'Нет сотрудников. Добавьте их в разделе «Сотрудники».',
+  ERR_MONEY:'Не удалось записать выдачу в приложение «Деньги». Выплата не сохранена. Попробуйте ещё раз или сообщите руководителю.'
 };
 const S = { user: load('user'), pin: load('pin') || '', ref: null, month: null, data: null, q: '' };
 
@@ -263,6 +264,7 @@ function showMonth(){
       <div class="box"><span>Фонд зарплаты</span><b class="num">${money(t.full)}</b><small>${t.people} чел.${diff !== null ? ' · к прошлому: ' + (diff > 0 ? '+' : '') + money(diff) : ''}</small></div>
       <div class="box card"><span>На карту</span><b class="num">${money(t.card)}</b><small>налог 12%: ${money(t.tax)}</small></div>
       <div class="box cash"><span>Наличными</span><b class="num">${money(t.cash)}</b></div>
+      <div class="box"><span>Затраты на зарплату</span><b class="num">${money(t.cost)}</b><small>полная ЗП + налог 12% · для себестоимости</small></div>
       <div class="box left"><span>Осталось выдать</span><b class="num">${money(t.leftCard + t.leftCash)}</b><small>карта ${money(t.leftCard)} · нал ${money(t.leftCash)}</small></div>
     </div>
     <input class="search" id="q" type="search" placeholder="Поиск по имени" value="${esc(S.q)}" aria-label="Поиск по имени">
@@ -276,7 +278,7 @@ function showMonth(){
       <button class="btn ghost" id="mEmps" type="button">Сотрудники</button>
     </div>
     <details><summary>Выдать всем сразу</summary>
-      <p class="hint">Запишет выплату на весь остаток каждому сотруднику, сегодняшней датой.</p>
+      <p class="hint">Запишет выплату на весь остаток каждому сотруднику, сегодняшней датой. Наличные сразу попадут в «Деньги».</p>
       <div class="actions"><button class="btn card small" id="allCard" type="button" ${t.leftCard > 0 ? '' : 'disabled'}>Всем на карту: ${money(Math.max(0, t.leftCard))}</button>
       <button class="btn cash small" id="allCash" type="button" ${t.leftCash > 0 ? '' : 'disabled'}>Всем наличными: ${money(Math.max(0, t.leftCash))}</button></div>
       <div id="allAsk"></div>
@@ -319,6 +321,7 @@ function showRow(empId){
   const calcHtml = () => { const full = f.full, cash = Math.max(0, full - f.card), gross = Math.round(f.card / 0.88); return `<div class="calc">
         <div class="cardrow"><span>На карту</span><span class="num">${money(f.card)}</span></div>
         <div class="cashrow"><span>Наличными</span><span class="num">${money(cash)}</span></div>
+        <div><span>Затраты на зарплату (с налогом 12%)</span><span class="num">${money(full + gross - f.card)}</span></div>
         ${f.card > full ? '<div><span class="c-red">На карту больше полной ЗП — проверьте</span><span></span></div>' : ''}
         ${r.prevCard || r.prevCash ? `<div><span>Долг с прошлого месяца</span><span class="num">карта ${money(r.prevCard)} · нал ${money(r.prevCash)}</span></div>` : ''}
         <div><span>Выдано</span><span class="num">карта ${money(r.paidCard)} · нал ${money(r.paidCash)}</span></div>
@@ -404,6 +407,7 @@ function showRow(empId){
         <div class="form two"><div class="field"><label class="label" for="pSum">Сумма</label><input class="txt money num" id="pSum" inputmode="numeric" value="${money(Math.max(0, left))}"></div>
         <div class="field"><label class="label" for="pDate">Дата</label><input class="txt" type="date" id="pDate" value="${esc(S.ref.today)}" max="${esc(S.ref.today)}"></div></div>
         <div class="field"><label class="label" for="pCmt">Комментарий <em>(например, аванс)</em></label><input class="txt" id="pCmt" maxlength="200"></div>
+        ${kind === 'Наличные' ? '<p class="hint" style="margin:0">Эта выдача сама запишется в «Деньги» расходом из кассы «Наличные».</p>' : ''}
         <div class="actions"><button class="btn ${kind === 'Карта' ? 'card' : 'cash'}" id="pOk" type="button">Записать</button><button class="btn ghost" id="pNo" type="button">Отмена</button></div></div>`;
       box.scrollIntoView({ block: 'center' });
       const sumEl = document.getElementById('pSum');

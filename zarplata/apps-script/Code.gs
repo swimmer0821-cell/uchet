@@ -29,6 +29,11 @@ const CANCELLED = 'Отменена';
 const TYPES = ['Месяц', 'Смена', 'День'];
 const PAY_KINDS = ['Карта', 'Наличные'];
 
+// Связь с приложением «Деньги»: выдача НАЛИЧНЫМИ сразу записывается там расходом.
+const MONEY_SHEET_ID = '18mgpXfwxlSQjfXNWjlOHpLGu_0Or5V9Z1ynmxXtFwVM';   // таблица «Учёт денег SUB PROFI»
+const MONEY_LINK_KINDS = ['Наличные'];                                   // карту пока не связываем
+const MONEY_ART = { type: 'Расход', cat: 'Зарплата', sub: 'Наличная часть', pay: 'Наличные' };
+
 const EMP_H = ['ID', 'Имя', 'ФИО (официально)', 'Должность / заметка', 'Способ', 'Ставка', 'На карту (обычно)', 'Работает', 'Комментарий'];
 const ROW_H = ['Месяц', 'ID сотрудника', 'Имя', 'Способ', 'Ставка', 'Кол-во смен/дней', 'Полная ЗП', 'На карту', 'Комментарий', 'Изменил', 'Когда'];
 const PAY_H = ['ID', 'Месяц', 'ID сотрудника', 'Дата', 'Вид', 'Сумма', 'Комментарий', 'Кто', 'Когда', 'Статус'];
@@ -190,7 +195,7 @@ function month_(m) {
   return {
     month: m, rows: result,
     pays: readPays_().filter(p => p.month === m),
-    total: { full: t('full'), card: t('card'), cash: t('cash'), gross: t('gross'), tax: t('tax'),
+    total: { full: t('full'), card: t('card'), cash: t('cash'), gross: t('gross'), tax: t('tax'), cost: t('full') + t('tax'),
       paidCard: t('paidCard'), paidCash: t('paidCash'), leftCard: t('leftCard'), leftCash: t('leftCash'), people: result.length }
   };
 }
@@ -220,7 +225,9 @@ function addPay_(user, p) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || date > today_()) throw new Error('ERR_DATE');
   const pid = s_(p.id) || Utilities.getUuid();
   if (readPays_().some(z => z.id === pid)) return { id: pid, duplicate: true };
-  sheet_(SH_PAY).appendRow([pid, "'" + m, id, dateObj_(date), s_(p.kind), sum, safe_(p.comment, 200), user.name, new Date(), '']);
+  const row = [pid, "'" + m, id, dateObj_(date), s_(p.kind), sum, safe_(p.comment, 200), user.name, new Date(), ''];
+  moneyAdd_(user, [row]);                      // сначала «Деньги»: если не получилось — выплату не записываем
+  sheet_(SH_PAY).appendRow(row);
   return { id: pid };
 }
 
@@ -233,14 +240,17 @@ function payAll_(user, m, kind, empId) {
     const left = kind === 'Карта' ? r.leftCard : r.leftCash;
     if (left > 0) out.push([Utilities.getUuid(), "'" + m, r.empId, dateObj_(date), kind, left, 'выдано всё', user.name, now, '']);
   });
-  if (out.length) { const sh = sheet_(SH_PAY); sh.getRange(sh.getLastRow() + 1, 1, out.length, out[0].length).setValues(out); }
+  if (out.length) { moneyAdd_(user, out); const sh = sheet_(SH_PAY); sh.getRange(sh.getLastRow() + 1, 1, out.length, out[0].length).setValues(out); }
   return { count: out.length };
 }
 
 function cancelPay_(user, id) {
   const p = readPays_().find(z => z.id === s_(id));
   if (!p) throw new Error('ERR_NOT_FOUND');
-  if (!p.cancelled) sheet_(SH_PAY).getRange(p.row, 10).setValue(CANCELLED);
+  if (!p.cancelled) {
+    if (MONEY_LINK_KINDS.indexOf(p.kind) >= 0) moneyCancel_(p.id);
+    sheet_(SH_PAY).getRange(p.row, 10).setValue(CANCELLED);
+  }
   return { ok: true };
 }
 
@@ -281,6 +291,47 @@ function saveEmp_(user, e) {
     sheet_(SH_ROWS).appendRow(["'" + last, id, vals[0], type, vals[4], type === 'Месяц' ? '' : 0, type === 'Месяц' ? vals[4] : 0, vals[5], '', user.name, new Date()]);
   }
   return { id: id };
+}
+
+// ===================== СВЯЗЬ С «ДЕНЬГАМИ» =====================
+// Строка листа «Операции» в «Учёт денег»: ID, Дата, Тип, Статья, Подстатья, Сумма, Способ оплаты,
+// Контрагент, Комментарий, Кто внёс, Время записи, Статус, Изменено, Наименование, Количество, Ед., Куда
+function moneySheet_() {
+  try { return SpreadsheetApp.openById(MONEY_SHEET_ID).getSheetByName('Операции'); }
+  catch (e) { throw new Error('ERR_MONEY'); }
+}
+function moneyAdd_(user, payRows) {
+  const rows = payRows.filter(r => MONEY_LINK_KINDS.indexOf(r[4]) >= 0);
+  if (!rows.length) return;
+  const sh = moneySheet_();
+  if (!sh) throw new Error('ERR_MONEY');
+  const emps = readEmps_();
+  const out = rows.map(r => {
+    const m = String(r[1]).replace(/^'/, ''), e = emps.find(x => x.id === r[2]) || { name: r[2] };
+    const note = 'Зарплата за ' + monthName_(m) + (r[6] ? ' · ' + r[6] : '') + ' · из приложения «Зарплата»';
+    return ['zp-' + r[0], r[3], MONEY_ART.type, MONEY_ART.cat, MONEY_ART.sub, r[5], MONEY_ART.pay,
+      '', note, user.name, new Date(), '', '', e.name, '', '', ''];
+  });
+  const start = sh.getLastRow() + 1;
+  sh.getRange(start, 1, out.length, out[0].length).setValues(out);
+  sh.getRange(start, 2, out.length, 1).setNumberFormat('dd.mm.yyyy');
+}
+function moneyCancel_(payId) {
+  const sh = moneySheet_();
+  const last = sh.getLastRow();
+  if (last < 2) return;
+  const ids = sh.getRange(2, 1, last - 1, 1).getValues();
+  for (let i = ids.length - 1; i >= 0; i--) {
+    if (String(ids[i][0]) === 'zp-' + payId) { sh.getRange(i + 2, 12).setValue('Отменена'); return; }
+  }
+}
+function monthName_(m) {
+  const n = ['январь','февраль','март','апрель','май','июнь','июль','август','сентябрь','октябрь','ноябрь','декабрь'];
+  return n[Number(m.slice(5)) - 1] + ' ' + m.slice(0, 4);
+}
+// Запустить один раз из редактора: Google спросит разрешение на доступ к таблице «Учёт денег».
+function checkMoneyLink() {
+  Logger.log('Связь с «Деньгами» работает: ' + SpreadsheetApp.openById(MONEY_SHEET_ID).getName());
 }
 
 // ===================== МЕЛОЧИ =====================
