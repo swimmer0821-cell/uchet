@@ -279,8 +279,9 @@ function doPost(e) {
   try {
     // Список пользователей нужен до входа, поэтому без проверки
     if (req.action === 'users') return out_({ ok: true, data: listUsers_() });
-    // Первый вход: человек без PIN сам придумывает PIN
-    if (req.action === 'setPin') return out_({ ok: true, data: setPin_(req.user, req.newPin) });
+    // С 09.11.2026 PIN сам себе не задают: временный PIN вписывает руководитель, при входе его сразу меняют (changePin)
+    if (req.action === 'setPin') throw new Error('ERR_NO_PIN');
+    if (req.action === 'changePin') return out_({ ok: true, data: changePin_(req.user, req.pin, req.newPin) });
 
     const user = auth_(req.user, req.pin);
     let data;
@@ -307,7 +308,7 @@ function out_(obj) {
 
 // ===================== ПОЛЬЗОВАТЕЛИ =====================
 function listUsers_() {
-  return readRef_().users.map(u => ({ name: u.name, role: u.role, hasPin: !!u.pin }));
+  return readRef_().users.map(u => ({ name: u.name }));   // без роли и признака «PIN задан» (защита, 09.11.2026)
 }
 
 // Проверяем, что пользователь есть в справочнике и PIN верный.
@@ -321,6 +322,12 @@ function pinHash_(name, pin) {
   return b.map(x => ('0' + ((x + 256) % 256).toString(16)).slice(-2)).join('');
 }
 function isPinHash_(v) { return /^[0-9a-f]{64}$/.test(String(v || '')); }
+// С 09.11.2026: новый PIN из 6 цифр хранится как «v2:<отпечаток>». Старый (без v2:) годится только чтобы сразу сменить PIN.
+function isNewPin_(v) { return /^v2:[0-9a-f]{64}$/.test(String(v || '')); }
+function pinMatch_(u, p) {
+  if (isNewPin_(u.pin)) return 'v2:' + pinHash_(u.name, p) === u.pin;
+  return isPinHash_(u.pin) ? pinHash_(u.name, p) === u.pin : p === u.pin;
+}
 
 function auth_(name, pin) {
   const u = readRef_().users.find(x => x.name === String(name || '').trim());
@@ -331,10 +338,9 @@ function auth_(name, pin) {
   const fails = Number(cache.get(key) || 0);
   if (fails >= PIN_MAX_FAILS) throw new Error('ERR_LOCKED');
   const p = String(pin || '');
-  const ok = isPinHash_(u.pin) ? pinHash_(u.name, p) === u.pin : p === u.pin;
-  if (!ok) { cache.put(key, String(fails + 1), 600); throw new Error('ERR_PIN'); }
+  if (!pinMatch_(u, p)) { cache.put(key, String(fails + 1), 600); throw new Error('ERR_PIN'); }
   if (fails) cache.remove(key);
-  if (!isPinHash_(u.pin)) storePinHash_(u.name, pinHash_(u.name, p));
+  if (!isNewPin_(u.pin)) throw new Error('ERR_NEW_PIN');   // старый PIN: пустить только после смены на новый
   return u;
 }
 
@@ -353,28 +359,23 @@ function storePinHash_(name, hash) {
   }
 }
 
-// Сохранить новый PIN. Можно только если PIN ещё не задан
-// (или руководитель очистил ячейку PIN в листе «Справочники»).
-function setPin_(name, newPin) {
+// Смена PIN (09.11.2026): текущий PIN (старый или новый) + новый из 6 цифр. Хранится только «v2:отпечаток».
+function changePin_(name, oldPin, newPin) {
   const pin = String(newPin || '');
-  if (!/^\d{4}$/.test(pin)) throw new Error('ERR_PIN_FORMAT');
-  const lock = LockService.getScriptLock();
-  lock.waitLock(20000);
-  try {
-    const sh = sheet_(SHEET_REF);
-    const v = sh.getDataRange().getValues();
-    for (let r = 1; r < v.length; r++) {
-      if (String(v[r][14] || '').trim() === String(name || '').trim() && String(name || '').trim()) {
-        if (String(v[r][16] || '').trim()) throw new Error('ERR_PIN_EXISTS');
-        sh.getRange(r + 1, 17).setNumberFormat('@').setValue(pinHash_(String(name).trim(), pin));
-        SpreadsheetApp.flush();
-        return { ok: true };
-      }
-    }
-    throw new Error('ERR_USER');
-  } finally {
-    lock.releaseLock();
-  }
+  if (!/^\d{6}$/.test(pin)) throw new Error('ERR_PIN_FORMAT');
+  const u = readRef_().users.find(x => x.name === String(name || '').trim());
+  if (!u) throw new Error('ERR_USER');
+  if (!u.pin) throw new Error('ERR_NO_PIN');
+  const cache = CacheService.getScriptCache();
+  const key = 'pinfail_' + pinHash_(u.name, '').slice(0, 16);
+  const fails = Number(cache.get(key) || 0);
+  if (fails >= PIN_MAX_FAILS) throw new Error('ERR_LOCKED');
+  if (!pinMatch_(u, String(oldPin || ''))) { cache.put(key, String(fails + 1), 600); throw new Error('ERR_PIN'); }
+  if (fails) cache.remove(key);
+  if (pinMatch_(u, pin)) throw new Error('ERR_PIN_SAME');
+  storePinHash_(u.name, 'v2:' + pinHash_(u.name, pin));
+  SpreadsheetApp.flush();
+  return { ok: true };
 }
 
 

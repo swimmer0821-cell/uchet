@@ -235,7 +235,7 @@ const T = {
     period:'Период: {a} — {b}', comparedWith:'Сравнение с {a} — {b}', noData:'За этот период записей нет',
     T_Расход:'Расход', T_Доход:'Доход', T_Вложение:'Вложение', T_Перевод:'Перевод',
     ERR_NET:'Нет связи с интернетом или сервер не ответил. Проверьте интернет и нажмите «Повторить».',
-    ERR_PIN:'Неверный PIN. Попробуйте ещё раз.', ERR_LOCKED:'Слишком много неверных PIN. Вход закрыт на 10 минут.', ERR_PAY_TO:'Выберите, куда положили деньги — другую кассу.', ERR_NO_PIN:'Нужно придумать PIN.', ERR_PIN_EXISTS:'PIN уже задан. Введите его. Если забыли — попросите руководителя сбросить.', ERR_PIN_FORMAT:'PIN — это 4 цифры.', ERR_USER:'Пользователь не найден. Выберите себя заново.',
+    ERR_PIN:'Неверный PIN. Попробуйте ещё раз.', ERR_LOCKED:'Слишком много неверных PIN. Вход закрыт на 10 минут.', ERR_PAY_TO:'Выберите, куда положили деньги — другую кассу.', ERR_NO_PIN:'PIN не задан. Попросите руководителя вписать вам временный PIN в лист «Справочники». При входе вы сразу смените его на свой.', ERR_PIN_EXISTS:'PIN уже задан. Введите его.', ERR_PIN_FORMAT:'Новый PIN — это 6 цифр.', ERR_PIN_SAME:'Новый PIN должен отличаться от старого.', ERR_NEW_PIN:'Нужно задать новый PIN.', newPin6:'Придумайте новый PIN из 6 цифр', newPinWhy:'Для защиты старый PIN больше не действует. Придумайте новый и запомните его.', repeatNew:'Повторите новый PIN', loginBtn:'Войти', ERR_USER:'Пользователь не найден. Выберите себя заново.',
     ERR_ROLE:'Это может делать только руководитель.', ERR_AMOUNT:'Сумма должна быть больше нуля.',
     ERR_AMOUNT_BIG:'Слишком большая сумма. Проверьте нули.', ERR_ARTICLE:'Такой статьи нет в справочнике. Закройте и откройте приложение заново.',
     ERR_PAY:'Такого способа оплаты нет в справочнике.', ERR_DATE:'Неверная дата.', ERR_DATE_FUTURE:'Дата не может быть позже сегодняшней.',
@@ -270,7 +270,7 @@ const T = {
     period:'Davr: {a} — {b}', comparedWith:'Taqqoslash: {a} — {b}', noData:'Bu davrda yozuvlar yoʻq',
     T_Расход:'Xarajat', T_Доход:'Daromad', T_Вложение:'Investitsiya', T_Перевод:'Oʻtkazma',
     ERR_NET:'Internet yoʻq yoki server javob bermadi. Internetni tekshiring va «Qaytadan» ni bosing.',
-    ERR_PIN:'PIN notoʻgʻri. Qaytadan urinib koʻring.', ERR_LOCKED:'Notoʻgʻri PIN juda koʻp. Kirish 10 daqiqaga yopildi.', ERR_PAY_TO:'Pul qayerga qoʻyilganini tanlang — boshqa kassani.', ERR_NO_PIN:'PIN oʻylab topish kerak.', ERR_PIN_EXISTS:'PIN allaqachon bor. Uni kiriting. Unutgan boʻlsangiz, rahbardan tiklashni soʻrang.', ERR_PIN_FORMAT:'PIN — bu 4 ta raqam.', ERR_USER:'Foydalanuvchi topilmadi. Oʻzingizni qaytadan tanlang.',
+    ERR_PIN:'PIN notoʻgʻri. Qaytadan urinib koʻring.', ERR_LOCKED:'Notoʻgʻri PIN juda koʻp. Kirish 10 daqiqaga yopildi.', ERR_PAY_TO:'Pul qayerga qoʻyilganini tanlang — boshqa kassani.', ERR_NO_PIN:'PIN yoʻq. Rahbardan «Справочники» varagʻiga vaqtinchalik PIN yozib qoʻyishini soʻrang. Kirishda uni darhol oʻzingiznikiga almashtirasiz.', ERR_PIN_EXISTS:'PIN allaqachon bor. Uni kiriting.', ERR_PIN_FORMAT:'Yangi PIN — 6 ta raqam.', ERR_PIN_SAME:'Yangi PIN eskisidan farq qilishi kerak.', ERR_NEW_PIN:'Yangi PIN oʻrnatish kerak.', newPin6:'Yangi 6 xonali PIN oʻylab toping', newPinWhy:'Xavfsizlik uchun eski PIN endi ishlamaydi. Yangisini oʻylab toping va eslab qoling.', repeatNew:'Yangi PINni takrorlang', loginBtn:'Kirish', ERR_USER:'Foydalanuvchi topilmadi. Oʻzingizni qaytadan tanlang.',
     ERR_ROLE:'Buni faqat rahbar qila oladi.', ERR_AMOUNT:'Summa noldan katta boʻlishi kerak.',
     ERR_AMOUNT_BIG:'Summa juda katta. Nollarni tekshiring.', ERR_ARTICLE:'Bunday modda maʼlumotnomada yoʻq. Ilovani yopib, qayta oching.',
     ERR_PAY:'Bunday toʻlov usuli yoʻq.', ERR_DATE:'Sana notoʻgʻri.', ERR_DATE_FUTURE:'Sana bugundan keyin boʻlishi mumkin emas.',
@@ -352,6 +352,7 @@ function showError(code, retryFn, backFn){
   rerender = () => showError(code, retryFn, backFn);
   // PIN не подходит (сменили или поставили, пока приложение было открыто) — сразу на экран входа
   if ((code === 'ERR_PIN' || code === 'ERR_NO_PIN' || code === 'ERR_USER') && S.ref) { logout(); return showLogin(); }
+  if (code === 'ERR_NEW_PIN' && S.user && S.pin) { const n = S.user.name; S.ref = null; return showChangePin({ name: n }, null, S.pin); }
   screen(t('error'), `
     <div class="result bad" role="alert"><b>${esc(t('error'))}</b><p>${esc(errText(code))}</p></div>
     <div class="actions">
@@ -372,7 +373,8 @@ async function start(){
     S.user = { name: saved };
     try { await doInit(); return; }
     catch (e) {
-      if (e.code === 'ERR_PIN' || e.code === 'ERR_USER' || e.code === 'ERR_NO_PIN') { logout(); }
+      if (e.code === 'ERR_NEW_PIN' && S.pin) return showChangePin({ name: saved }, null, S.pin);   // старый PIN — сразу новый (09.11.2026)
+      if (e.code === 'ERR_PIN' || e.code === 'ERR_USER' || e.code === 'ERR_NO_PIN' || e.code === 'ERR_LOCKED') { logout(); }
       else return showError(e.code, start);
     }
   }
@@ -398,61 +400,68 @@ function renderLogin(users){
   $app.querySelectorAll('[data-i]').forEach(b => b.onclick = () => {
     const u = users[+b.dataset.i];
     S.user = { name: u.name };
-    if (u.hasPin) showPin(u, users); else showNewPin(u, users);
+    showPin(u, users);
   });
 }
 
-// Цифровая клавиатура для PIN (4 цифры). onDone(pin) вызывается после 4-й цифры.
-function pinPad(title, hint, warn, backFn, onDone){
+// Цифровая клавиатура для PIN. len = 6 — ровно 6 цифр, сразу дальше; len = 0 — от 4 до 6 цифр и кнопка «Войти»
+// (старые PIN были из 4 цифр, новые — из 6; с 09.11.2026).
+function pinPad(title, hint, warn, backFn, onDone, len){
   let pin = '';
+  const max = 6;
   const draw = () => {
     rerender = draw;
+    const shown = len ? len : Math.max(4, pin.length);
     screen(t('app'), `
       <h2>${esc(title)}</h2><p class="hint">${esc(hint)}</p>
       ${warn ? `<div class="warn" role="alert">${esc(warn)}</div>` : ''}
-      <div class="display num" aria-live="polite" style="text-align:center;letter-spacing:.4em">${'●'.repeat(pin.length)}${'○'.repeat(4 - pin.length)}</div>
+      <div class="display num" aria-live="polite" style="text-align:center;letter-spacing:.4em">${'●'.repeat(pin.length)}${'○'.repeat(Math.max(0, shown - pin.length))}</div>
       <div class="pad">${[1,2,3,4,5,6,7,8,9].map(n => `<button class="key" type="button" data-k="${n}">${n}</button>`).join('')}
-        <span></span>
+        <button class="key wide" type="button" data-k="del">${esc(t('erase'))}</button>
         <button class="key" type="button" data-k="0">0</button>
-        <button class="key wide" type="button" data-k="del">${esc(t('erase'))}</button></div>`, backFn);
+        ${len ? '<span></span>' : `<button class="key wide" type="button" data-k="ok"${pin.length >= 4 ? '' : ' disabled'}>${esc(t('loginBtn'))}</button>`}</div>`, backFn);
     $app.querySelectorAll('[data-k]').forEach(b => b.onclick = () => {
       const k = b.dataset.k;
       if (k === 'del') { pin = pin.slice(0, -1); draw(); return; }
-      if (pin.length >= 4) return;
+      if (k === 'ok') { if (pin.length >= 4) onDone(pin); return; }
+      if (pin.length >= (len || max)) return;
       pin += k; draw();
-      if (pin.length === 4) setTimeout(() => onDone(pin), 150);
+      if (pin.length === (len || max)) setTimeout(() => onDone(pin), 150);
     });
   };
   draw();
 }
 
-// Вход по существующему PIN
+// Вход по PIN
 function showPin(u, users, warn){
-  pinPad(u.name, t('enterPin'), warn, () => renderLogin(users), (pin) => {
+  pinPad(u.name, t('enterPin'), warn, () => users ? renderLogin(users) : showLogin(), (pin) => {
     S.pin = pin;
     doInit().catch(e => {
+      if (e.code === 'ERR_NEW_PIN') return showChangePin(u, users, pin);
       S.pin = '';
       if (e.code === 'ERR_PIN' || e.code === 'ERR_LOCKED') showPin(u, users, t(e.code));
-      else showError(e.code, () => showPin(u, users), () => renderLogin(users));
+      else showError(e.code, () => showPin(u, users), () => users ? renderLogin(users) : showLogin());
     });
-  });
+  }, 0);
 }
 
-// Первый вход: придумать PIN и повторить его
-function showNewPin(u, users, warn){
-  pinPad(u.name, t('newPin'), warn, () => renderLogin(users), (first) => {
-    pinPad(u.name, t('repeatPin'), '', () => showNewPin(u, users), async (second) => {
-      if (first !== second) return showNewPin(u, users, t('pinMismatch'));
+// Старый PIN больше не пускает: сразу задаём новый из 6 цифр (09.11.2026)
+function showChangePin(u, users, oldPin, warn){
+  S.user = { name: u.name };
+  const back = () => { logout(); users ? renderLogin(users) : showLogin(); };
+  pinPad(u.name, t('newPin6'), warn || t('newPinWhy'), back, (first) => {
+    pinPad(u.name, t('repeatNew'), '', () => showChangePin(u, users, oldPin), async (second) => {
+      if (first !== second) return showChangePin(u, users, oldPin, t('pinMismatch'));
       try {
-        await api('setPin', { newPin: first }, t('saving'));
+        await api('changePin', { pin: oldPin, newPin: first }, t('saving'));
         S.pin = first;
         await doInit();
       } catch (e) {
-        if (e.code === 'ERR_PIN_EXISTS') showPin(u, users, t('ERR_PIN_EXISTS'));
-        else showError(e.code, () => showNewPin(u, users), () => renderLogin(users));
+        if (e.code === 'ERR_PIN_SAME' || e.code === 'ERR_PIN_FORMAT') return showChangePin(u, users, oldPin, t(e.code));
+        logout(); showError(e.code, showLogin, showLogin);
       }
-    });
-  });
+    }, 6);
+  }, 6);
 }
 
 /* ==========================================================
