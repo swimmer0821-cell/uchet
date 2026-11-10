@@ -853,14 +853,44 @@ function syncSales() {
     });
 
     // 2) заказы из бота — по таблице заказов
-    const sh = SpreadsheetApp.openById(SALES_ORDERS_SHEET_ID).getSheets()[0];
+    const ordersSs = SpreadsheetApp.openById(SALES_ORDERS_SHEET_ID);
+    const sh = ordersSs.getSheets()[0];
     const rows = sh.getLastRow() > 1 ? sh.getRange(2, 1, sh.getLastRow() - 1, 15).getDisplayValues() : [];
     const fresh = readOps_(0); fresh.forEach(o => { byOpId[o.id] = o; });
+
+    // 2а) частичные оплаты (с 10.11.2026): лист «Оплаты» таблицы заказов, одна строка — одна оплата.
+    // Каждая оплата — свой доход 'sale-pay-<ID>' на сумму, которая реально пришла (при перечислении — уже с НДС).
+    // paidNet[№] — сколько долга без НДС закрыто оплатами; доход по самому заказу пишется только на остаток.
+    const paidNet = {};
+    const paySh = ordersSs.getSheetByName('Оплаты');
+    const payRows = paySh && paySh.getLastRow() > 1 ? paySh.getRange(2, 1, paySh.getLastRow() - 1, 8).getValues() : [];
+    payRows.forEach(p => {
+      const pid = Math.round(Number(p[0])) || 0, num = String(Math.round(Number(p[1])) || ''), got = Math.round(Number(p[4])) || 0, net = Math.round(Number(p[6])) || 0;
+      if (!pid || !num || got <= 0 || net <= 0) return;
+      paidNet[num] = (paidNet[num] || 0) + net;
+      const id = 'sale-pay-' + pid;
+      if (byOpId[id]) return;   // уже записана (правки руководителя в «Деньгах» не трогаем)
+      const date = ruDate_(p[2]) || today_();
+      if (date < SALES_FROM) return;
+      const v = saleValues_(ref, { num: num, client: p[3], total: net, date: date, pay: String(p[5] || '').trim() });
+      v.amount = got;
+      v.comment = 'Частичная оплата заказа №' + num + ' из Telegram-бота, записано автоматически' +
+        (got !== net ? ' · в счёт долга без НДС ' + net.toLocaleString('ru-RU') + ' сум' : '');
+      saleAppend_(id, v);
+      byOpId[id] = { id: id };
+      res.added++;
+    });
+
     rows.forEach(r => {
       const num = String(r[0]).trim();
       if (!/^\d+$/.test(num)) return;
-      const status = String(r[8]).trim(), total = Math.round(Number(String(r[7]).replace(/[^\d.,]/g, '').replace(',', '.'))) || 0;
+      const status = String(r[8]).trim(), fullTotal = Math.round(Number(String(r[7]).replace(/[^\d.,]/g, '').replace(',', '.'))) || 0;
+      const total = Math.max(0, fullTotal - (paidNet[num] || 0));   // остаток после частичных оплат
       const id = 'sale-bot-' + num, o = byOpId[id];
+      if (paidNet[num] && total <= 0) {   // долг закрыт частичными оплатами целиком — отдельной записи по заказу нет
+        if (o && o.status !== STATUS_CANCELLED) { saleCancel_(o.row); res.cancelled++; }
+        return;
+      }
       const sheetPay = String(r[13] || '').trim();   // колонка N «Оплата»: менеджер выбрал в боте при «Оплачен»
       // Долг торгового агента (с 28.10.2026): «Отправлен», а «Оплата» пустая — денег ещё нет, доход не пишем.
       // Когда менеджер нажмёт «Оплачен», в колонке N появится способ оплаты — тогда запишем.
@@ -869,7 +899,9 @@ function syncSales() {
         const date = ruDate_(r[9]) || ruDate_(r[1]) || today_();
         if (date < SALES_FROM) return;
         if (!o) {
-          saleAppend_(id, saleValues_(ref, { num: num, client: r[2], total: total, date: date, pay: props.getProperty('PAY_bot_' + num) || sheetPay }));
+          const nv = saleValues_(ref, { num: num, client: r[2], total: total, date: date, pay: props.getProperty('PAY_bot_' + num) || sheetPay });
+          if (paidNet[num]) nv.comment += ' · остаток после частичных оплат';
+          saleAppend_(id, nv);
           if (sheetPay) props.setProperty('SHEETPAY_bot_' + num, sheetPay);
           res.added++;
           return;
@@ -881,7 +913,7 @@ function syncSales() {
           if (o.status !== STATUS_CANCELLED && o.pay !== pay) { saleWrite_(o.row, { pay: pay }); o.pay = pay; res.updated++; }
         }
         const cur = o;
-        const want = saleAmt_(total, cur.pay), note = saleNote_(num, total, cur.pay, false);
+        const want = saleAmt_(total, cur.pay), note = saleNote_(num, total, cur.pay, false) + (paidNet[num] ? ' · остаток после частичных оплат' : '');
         if (cur.status === STATUS_CANCELLED) {
           saleWrite_(cur.row, { amount: want, comment: note }, true); res.updated++;   // заказ снова оплачен
         } else if (cur.sum !== want) {
