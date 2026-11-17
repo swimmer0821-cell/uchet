@@ -581,6 +581,17 @@ function editOp_(user, id, op) {
 
 // ===================== ИСТОРИЯ =====================
 // Руководитель видит все записи, сотрудник — свои и приходы из продаж (CRM).
+// Поиск в истории (с 17.11.2026): по наименованию, контрагенту, комментарию (там № заказа), статье, кассе, кто внёс, сумме, дате.
+// Несколько слов — должны найтись все. Цифры ищутся и без пробелов в сумме («250000» найдёт 250 000).
+function histMatch_(o, q) {
+  q = String(q || '').toLowerCase().replace(/ё/g, 'е').trim().slice(0, 80);
+  if (!q) return true;
+  const d = String(o.date || ''), dm = d.length >= 10 ? d.slice(8, 10) + '.' + d.slice(5, 7) + '.' + d.slice(0, 4) : d;
+  const hay = [o.name, o.party, o.comment, o.cat, o.sub, o.pay, o.payTo, o.who, o.type, o.id, dm, String(o.sum || '')]
+    .map(x => String(x || '')).join(' ').toLowerCase().replace(/ё/g, 'е');
+  const flat = hay.replace(/(\d)[\s\u00a0](?=\d)/g, '$1');
+  return q.split(/\s+/).every(w => { const wf = w.replace(/^№/, ''); return hay.indexOf(w) >= 0 || flat.indexOf(wf) >= 0; });
+}
 function history_(user, filter) {
   const now = Date.now();
   const res = [];
@@ -590,6 +601,7 @@ function history_(user, filter) {
     if (user.role !== 'boss' && o.who !== user.name && o.who !== SALES_WHO) continue;
     if (filter.type && o.type !== filter.type) continue;
     if (filter.cat && o.cat !== filter.cat) continue;
+    if (!histMatch_(o, filter.q)) continue;   // строка поиска (с 17.11.2026)
     res.push({
       id: o.id, date: o.date, type: o.type, cat: o.cat, sub: o.sub, sum: o.sum, pay: o.pay,
       party: o.party, comment: o.comment, who: o.who, created: o.created,

@@ -152,6 +152,10 @@ textarea{width:100%;min-height:90px;border:2px solid var(--line);border-radius:1
 .item .a{grid-column:1/-1;display:flex;gap:10px;flex-wrap:wrap}
 .item .a .chip{min-height:52px}
 .scroll-x{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px}
+.hsearch{display:flex;gap:8px;align-items:center;margin-bottom:10px}
+.hsearch input{flex:1;min-width:0;min-height:52px;border:2px solid var(--line);border-radius:12px;padding:8px 14px;font-size:18px;background:var(--bg);color:inherit}
+.hsearch input:focus{outline:none;border-color:var(--inc,#2d7a4c)}
+.hsearch .chip{flex:none;min-height:52px}
 .scroll-x .chip{flex:none}
 
 /* Отчёты */
@@ -213,7 +217,7 @@ const T = {
     app:'Учёт SUB PROFI', langBtn:'Oʻzbekcha', back:'Назад', home:'Главная',
     whoAreYou:'Кто вы?', whoHint:'Нажмите на своё имя', enterPin:'Введите PIN', newPin:'Первый вход. Придумайте PIN из 4 цифр и запомните его', repeatPin:'Повторите PIN', pinMismatch:'PIN не совпал. Придумайте ещё раз.', hello:'Здравствуйте, {n}',
     expense:'Расход', expenseSub:'Потратили деньги', income:'Доход', incomeSub:'Деньги пришли',
-    reports:'Отчёты', reportsSub:'Сколько пришло и ушло', history:'История', historySub:'Последние записи', histExp:'История расходов', histInc:'История доходов', histOpenSub:'что уже записано, по дням', dayExp:'расход', dayInc:'приход', balance:'Остаток', balanceSub:'Сколько денег в кассах', balTotal:'Всего денег', balOn:'по записям на {d}', balNote:'Считается по всем записям с начала учёта: начальный остаток + доходы и вложения − расходы, переводы перекладывают между кассами. Начальный остаток руководитель вписывает в таблицу: лист «Справочники», колонка L.', balNeg:'Минус: проверьте записи или начальный остаток.', payFrom:'Откуда взяли', payTo:'Куда положили',
+    reports:'Отчёты', reportsSub:'Сколько пришло и ушло', history:'История', historySub:'Последние записи', histSearch:'Поиск: название, магазин, № заказа, сумма', histClear:'Очистить поиск', histFound:'Найдено: {n}', histExp:'История расходов', histInc:'История доходов', histOpenSub:'что уже записано, по дням', dayExp:'расход', dayInc:'приход', balance:'Остаток', balanceSub:'Сколько денег в кассах', balTotal:'Всего денег', balOn:'по записям на {d}', balNote:'Считается по всем записям с начала учёта: начальный остаток + доходы и вложения − расходы, переводы перекладывают между кассами. Начальный остаток руководитель вписывает в таблицу: лист «Справочники», колонка L.', balNeg:'Минус: проверьте записи или начальный остаток.', payFrom:'Откуда взяли', payTo:'Куда положили',
     logout:'Сменить пользователя',
     whatPaid:'На что потратили?', fromWhere:'Что пришло?', clarify:'Уточните', other:'Другое', otherSub:'Все статьи',
     groupInc:'Доходы', groupInv:'Вложения и займы — не доход', groupTr:'Перевод между своими — не расход',
@@ -248,7 +252,7 @@ const T = {
     app:'SUB PROFI hisobi', langBtn:'Русский', back:'Orqaga', home:'Bosh sahifa',
     whoAreYou:'Siz kimsiz?', whoHint:'Ismingizni bosing', enterPin:'PIN kodni kiriting', newPin:'Birinchi kirish. 4 raqamli PIN oʻylab toping va eslab qoling', repeatPin:'PINni takrorlang', pinMismatch:'PIN mos kelmadi. Qaytadan oʻylab toping.', hello:'Assalomu alaykum, {n}',
     expense:'Xarajat', expenseSub:'Pul sarflandi', income:'Daromad', incomeSub:'Pul keldi',
-    reports:'Hisobotlar', reportsSub:'Qancha keldi va ketdi', history:'Tarix', historySub:'Oxirgi yozuvlar', histExp:'Xarajatlar tarixi', histInc:'Daromadlar tarixi', histOpenSub:'yozilganlar, kunlar boʻyicha', dayExp:'xarajat', dayInc:'kirim', balance:'Qoldiq', balanceSub:'Kassalarda qancha pul bor', balTotal:'Jami pul', balOn:'{d} holatiga yozuvlar boʻyicha', balNote:'Hisob boshidan barcha yozuvlar boʻyicha: boshlangʻich qoldiq + daromad va investitsiyalar − xarajatlar, oʻtkazmalar kassalar orasida koʻchiradi. Boshlangʻich qoldiqni rahbar jadvalga yozadi: «Справочники» varagʻi, L ustun.', balNeg:'Minus: yozuvlarni yoki boshlangʻich qoldiqni tekshiring.', payFrom:'Qayerdan olindi', payTo:'Qayerga qoʻyildi',
+    reports:'Hisobotlar', reportsSub:'Qancha keldi va ketdi', history:'Tarix', historySub:'Oxirgi yozuvlar', histSearch:'Qidirish: nomi, doʻkon, buyurtma №, summa', histClear:'Qidiruvni tozalash', histFound:'Topildi: {n}', histExp:'Xarajatlar tarixi', histInc:'Daromadlar tarixi', histOpenSub:'yozilganlar, kunlar boʻyicha', dayExp:'xarajat', dayInc:'kirim', balance:'Qoldiq', balanceSub:'Kassalarda qancha pul bor', balTotal:'Jami pul', balOn:'{d} holatiga yozuvlar boʻyicha', balNote:'Hisob boshidan barcha yozuvlar boʻyicha: boshlangʻich qoldiq + daromad va investitsiyalar − xarajatlar, oʻtkazmalar kassalar orasida koʻchiradi. Boshlangʻich qoldiqni rahbar jadvalga yozadi: «Справочники» varagʻi, L ustun.', balNeg:'Minus: yozuvlarni yoki boshlangʻich qoldiqni tekshiring.', payFrom:'Qayerdan olindi', payTo:'Qayerga qoʻyildi',
     logout:'Foydalanuvchini almashtirish',
     whatPaid:'Nimaga sarfladingiz?', fromWhere:'Nima keldi?', clarify:'Aniqlang', other:'Boshqa', otherSub:'Barcha moddalar',
     groupInc:'Daromadlar', groupInv:'Investitsiya va qarzlar — daromad emas', groupTr:'Oʻz hisoblar oʻrtasida — xarajat emas',
@@ -821,6 +825,10 @@ function renderHistory(){
   const mins = (S.ref.cancelMinutes || 10) * 60000;
   let lastDay = null;
   screen(t('history'), `
+    <form class="hsearch" id="hSearch" role="search"><input class="f" type="search" id="hQ" enterkeyhint="search" autocomplete="off"
+      placeholder="${esc(t('histSearch'))}" value="${esc(f.q || '')}" aria-label="${esc(t('histSearch'))}">
+      ${f.q ? `<button class="chip" type="button" id="hQx" aria-label="${esc(t('histClear'))}">✕</button>` : ''}</form>
+    ${f.q ? `<p class="hint">${esc(t('histFound', { n: items.length }))}</p>` : ''}
     ${types.length ? `<div class="scroll-x" role="group">
       <button class="chip" type="button" data-ft="" aria-pressed="${!f.type}">${esc(t('all'))}</button>
       ${types.map(x => `<button class="chip" type="button" data-ft="${x}" aria-pressed="${f.type === x}">${esc(t('T_' + x))}</button>`).join('')}</div>` : ''}
@@ -848,8 +856,15 @@ function renderHistory(){
                 ${isBoss() ? '' : `<span class="hint" style="align-self:center">${esc(t('cancelLeft', { m: left }))}</span>`}` : ''}</div>`) : ''}
         </div>`; }).join('') : `<div class="empty">${esc(t('empty'))}</div>`}
     </div>`, S.histBack || showHome);
-  $app.querySelectorAll('[data-ft]').forEach(b => b.onclick = () => { S.histFilter = { type: b.dataset.ft || undefined }; showHistory(); });
-  $app.querySelectorAll('[data-fc]').forEach(b => b.onclick = () => { S.histFilter = { type: f.type, cat: b.dataset.fc || undefined }; showHistory(); });
+  $app.querySelectorAll('[data-ft]').forEach(b => b.onclick = () => { S.histFilter = { type: b.dataset.ft || undefined, q: f.q }; showHistory(); });
+  $app.querySelectorAll('[data-fc]').forEach(b => b.onclick = () => { S.histFilter = { type: f.type, cat: b.dataset.fc || undefined, q: f.q }; showHistory(); });
+  // поиск: ищет сервер по всем записям (не только по последним на экране); Enter или пауза в наборе
+  const hq = document.getElementById('hQ'), go = () => { const q = hq.value.trim(); if (q === (f.q || '')) return; S.histFilter = Object.assign({}, f, { q: q || undefined }); showHistory(); };
+  document.getElementById('hSearch').onsubmit = e => { e.preventDefault(); clearTimeout(S.hqT); go(); };
+  hq.oninput = () => { clearTimeout(S.hqT); S.hqT = setTimeout(go, 700); };
+  const hx = document.getElementById('hQx'); if (hx) hx.onclick = () => { S.histFilter = Object.assign({}, f, { q: undefined }); showHistory(); };
+  if (S.hqFocus) { hq.focus(); hq.setSelectionRange(hq.value.length, hq.value.length); }
+  hq.onfocus = () => { S.hqFocus = true; }; hq.onblur = () => { S.hqFocus = false; };
   $app.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => { const o = items.find(x => x.id === b.dataset.edit); if (o) startEdit(o); });
   $app.querySelectorAll('[data-cancel]').forEach(b => b.onclick = () => { S.confirmCancel = b.dataset.cancel; renderHistory(); });
   $app.querySelectorAll('[data-no]').forEach(b => b.onclick = () => { S.confirmCancel = null; renderHistory(); });
