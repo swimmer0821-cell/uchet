@@ -27,6 +27,7 @@ const TIMEZONE = 'Asia/Tashkent';
 const TYPES = ['Расход', 'Доход', 'Вложение', 'Перевод'];
 const STATUS_CANCELLED = 'Отменена';
 const ROLE_BOSS = 'Руководитель';
+const BOSS_NAMES = ['елена'];   // учредители: права руководителя, даже если в «Справочниках» стоит «Сотрудник» (с 18.11.2026)
 const STAFF_TYPES = ['Расход', 'Доход'];   // что может записывать сотрудник
 
 // Колонки листа «Операции»
@@ -395,7 +396,7 @@ function readRef_() {
     }
     if (s(row[9])) pays.push({ ru: s(row[9]), uz: s(row[10]) || s(row[9]), start: Number(row[11]) || 0 });
     if (s(row[12])) parties.push(s(row[12]));
-    if (s(row[14])) users.push({ name: s(row[14]), role: s(row[15]) === ROLE_BOSS ? 'boss' : 'staff', pin: s(row[16]) });
+    if (s(row[14])) users.push({ name: s(row[14]), role: (s(row[15]) === ROLE_BOSS || BOSS_NAMES.indexOf(s(row[14]).toLowerCase()) >= 0) ? 'boss' : 'staff', pin: s(row[16]) });
   }
   return { articles, pays, parties, users };
 }
