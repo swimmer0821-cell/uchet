@@ -874,7 +874,7 @@ function syncSales() {
     // 2а) частичные оплаты (с 10.11.2026): лист «Оплаты» таблицы заказов, одна строка — одна оплата.
     // Каждая оплата — свой доход 'sale-pay-<ID>' на сумму, которая реально пришла (при перечислении — уже с НДС).
     // paidNet[№] — сколько долга без НДС закрыто оплатами; доход по самому заказу пишется только на остаток.
-    const paidNet = {};
+    const paidNet = {}, seenPay = {};
     const paySh = ordersSs.getSheetByName('Оплаты');
     const payRows = paySh && paySh.getLastRow() > 1 ? paySh.getRange(2, 1, paySh.getLastRow() - 1, 8).getValues() : [];
     payRows.forEach(p => {
@@ -882,6 +882,13 @@ function syncSales() {
       if (!pid || !num || got <= 0 || net <= 0) return;
       paidNet[num] = (paidNet[num] || 0) + net;
       const id = 'sale-pay-' + pid;
+      seenPay[id] = 1;
+      // наличные, которые агент взял частью долга (с 17.11.2026): долг уменьшен, но доход — только после сдачи денег в офис
+      // (руководитель подтверждает в «Агенте LAZA» → способ становится «Наличные» → запись появится)
+      if (String(p[5] || '').trim().indexOf('Наличные у агента') === 0) {
+        const oa = byOpId[id]; if (oa && oa.row && oa.status !== STATUS_CANCELLED) { saleCancel_(oa.row); res.cancelled++; }
+        return;
+      }
       if (byOpId[id]) return;   // уже записана (правки руководителя в «Деньгах» не трогаем)
       const date = ruDate_(p[2]) || today_();
       if (date < SALES_FROM) return;
@@ -892,6 +899,11 @@ function syncSales() {
       saleAppend_(id, v);
       byOpId[id] = { id: id };
       res.added++;
+    });
+    // оплату удалили с листа «Оплаты» (ошибка, с 17.11.2026) — её доход отменяем (записи не удаляются, только «Отменена»)
+    if (paySh) Object.keys(byOpId).forEach(k => {
+      const o = byOpId[k];
+      if (k.indexOf('sale-pay-') === 0 && !seenPay[k] && o && o.row && o.status !== STATUS_CANCELLED) { saleCancel_(o.row); res.cancelled++; }
     });
 
     rows.forEach(r => {
@@ -907,7 +919,17 @@ function syncSales() {
       const sheetPay = String(r[13] || '').trim();   // колонка N «Оплата»: менеджер выбрал в боте при «Оплачен»
       // Долг торгового агента (с 28.10.2026): «Отправлен», а «Оплата» пустая — денег ещё нет, доход не пишем.
       // Когда менеджер нажмёт «Оплачен», в колонке N появится способ оплаты — тогда запишем.
-      if (status === 'Отправлен' && !sheetPay && String(r[14] || '').trim().indexOf('Торговый агент') === 0) return;   // и «(с машины)»
+      if (status === 'Отправлен' && !sheetPay && String(r[14] || '').trim().indexOf('Торговый агент') === 0) {   // и «(с машины)»
+        // оплату с заказа сняли (снова долг, с 17.11.2026) — записанный ранее доход по заказу отменяем
+        if (o && o.status !== STATUS_CANCELLED) { saleCancel_(o.row); res.cancelled++; }
+        return;
+      }
+      // Наличные у торгового агента (с 16.11.2026): деньги ещё у агента — доход не пишем (а записанный отменяем).
+      // Руководитель подтвердит сдачу в «Агенте LAZA» → в колонке N станет «Наличные» → запись появится (или вернётся).
+      if (sheetPay.indexOf('Наличные у агента') === 0) {
+        if (o && o.status !== STATUS_CANCELLED) { saleCancel_(o.row); res.cancelled++; }
+        return;
+      }
       if (SALES_PAID.indexOf(status) >= 0 && total > 0) {
         const date = ruDate_(r[9]) || ruDate_(r[1]) || today_();
         if (date < SALES_FROM) return;
