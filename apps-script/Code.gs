@@ -24,11 +24,11 @@ const MAX_AMOUNT = 10000000000;     // 10 млрд сум: больше не п�
 const TYPICAL_DAYS = 120;           // за сколько дней смотреть «обычную сумму» статьи
 const TIMEZONE = 'Asia/Tashkent';
 
-const TYPES = ['Расход', 'Доход', 'Вложение', 'Перевод'];
+const TYPES = ['Расход', 'Доход', 'Вложение', 'Перевод', 'Возврат'];   // «Возврат» — возврат вложений и займов (с 24.11.2026)
 const STATUS_CANCELLED = 'Отменена';
 const ROLE_BOSS = 'Руководитель';
 const BOSS_NAMES = ['елена'];   // учредители: права руководителя, даже если в «Справочниках» стоит «Сотрудник» (с 18.11.2026)
-const STAFF_TYPES = ['Расход', 'Доход'];   // что может записывать сотрудник
+const STAFF_TYPES = ['Расход', 'Доход', 'Возврат'];   // что может записывать сотрудник
 
 // Колонки листа «Операции»
 const OPS_HEADERS = ['ID', 'Дата', 'Тип', 'Статья', 'Подстатья', 'Сумма', 'Способ оплаты',
@@ -115,6 +115,10 @@ const DEFAULT_ARTICLES = [
   ['Вложение', 'Вложения и займы', 'Investitsiya va qarzlar', 'Деньги от АЛ', 'AL dan pul', '', '', ''],
   ['Вложение', 'Вложения и займы', 'Investitsiya va qarzlar', 'Займ у Бест биотик', 'Best biotikdan qarz', '', '', ''],
   ['Вложение', 'Вложения и займы', 'Investitsiya va qarzlar', 'Другие займы', 'Boshqa qarzlar', '', '', ''],
+
+  ['Возврат', 'Возврат вложений', 'Investitsiyani qaytarish', 'Возврат АЛ', 'AL ga qaytarish', '', '', ''],
+  ['Возврат', 'Возврат вложений', 'Investitsiyani qaytarish', 'Возврат займа Бест биотик', 'Best biotikka qarzni qaytarish', '', '', ''],
+  ['Возврат', 'Возврат вложений', 'Investitsiyani qaytarish', 'Другие займы', 'Boshqa qarzlar', '', '', ''],
 
   ['Перевод', 'Перевод между своими', 'Oʻz hisoblar oʻrtasida', 'Инкассация (сдали в банк)', 'Inkassatsiya (bankka topshirildi)', '', '', ''],
   ['Перевод', 'Перевод между своими', 'Oʻz hisoblar oʻrtasida', 'Сняли с карты или счёта', 'Karta yoki hisobdan yechildi', '', '', ''],
@@ -404,6 +408,7 @@ function readRef_() {
 
 // ===================== ДАННЫЕ ДЛЯ ЗАПУСКА ПРИЛОЖЕНИЯ =====================
 function init_(user) {
+  ensureReturn_();
   const ref = readRef_();
   const allowed = user.role === 'boss' ? TYPES : STAFF_TYPES;
   return {
@@ -649,7 +654,7 @@ function balance_() {
   readOps_(0).forEach(o => {
     if (o.status === STATUS_CANCELLED || !o.pay) return;
     if (o.type === 'Доход' || o.type === 'Вложение') box(o.pay).sum += o.sum;
-    else if (o.type === 'Расход') box(o.pay).sum -= o.sum;
+    else if (o.type === 'Расход' || o.type === 'Возврат') box(o.pay).sum -= o.sum;
     else if (o.type === 'Перевод') { box(o.pay).sum -= o.sum; if (o.payTo) box(o.payTo).sum += o.sum; }
     if (o.date > last) last = o.date;
   });
@@ -697,7 +702,7 @@ function report_(user, from, to) {
 
   return {
     from: from, to: to, prevFrom: prevFrom, prevTo: prevTo, count: cur.count,
-    totals: { income: cur.income, expense: cur.expense, diff: cur.income - cur.expense, invest: cur.invest, transfer: cur.transfer },
+    totals: { income: cur.income, expense: cur.expense, diff: cur.income - cur.expense, invest: cur.invest, transfer: cur.transfer, payback: cur.payback },
     prevTotals: { income: prev.income, expense: prev.expense, diff: prev.income - prev.expense },
     expByCat: toList(cur.expByCat, cur.expense),
     incByCat: toList(cur.incByCat, cur.income),
@@ -707,7 +712,7 @@ function report_(user, from, to) {
 }
 
 function aggregate_(ops, from, to) {
-  const a = { income: 0, expense: 0, invest: 0, transfer: 0, count: 0, expByCat: {}, incByCat: {}, payExp: {}, payInc: {} };
+  const a = { income: 0, expense: 0, invest: 0, transfer: 0, payback: 0, count: 0, expByCat: {}, incByCat: {}, payExp: {}, payInc: {} };
   ops.forEach(o => {
     if (o.date < from || o.date > to) return;
     a.count++;
@@ -723,9 +728,46 @@ function aggregate_(ops, from, to) {
       a.invest += o.sum;
     } else if (o.type === 'Перевод') {
       a.transfer += o.sum;
+    } else if (o.type === 'Возврат') {
+      a.payback += o.sum;
     }
   });
   return a;
+}
+
+
+// ===================== ВОЗВРАТ ВЛОЖЕНИЙ (с 24.11.2026) =====================
+// Тип «Возврат»: деньги уходят из кассы (остаток уменьшается), но это не расход — как «Вложение» не доход.
+// Один раз (при первом входе после обновления) дописывает статьи в «Справочники», строку в «Отчёты» и значение в колонку «Тип».
+function ensureReturn_() {
+  const props = PropertiesService.getScriptProperties();
+  if (props.getProperty('RETURN_SETUP') === '1') return;
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(10000)) return;
+  try {
+    if (props.getProperty('RETURN_SETUP') === '1') return;
+    const ss = SpreadsheetApp.getActive(), ref = sheet_(SHEET_REF);
+    const colA = ref.getRange(1, 1, Math.max(ref.getLastRow(), 1), 1).getValues();
+    if (!colA.some(r => String(r[0]).trim() === 'Возврат')) {
+      let last = 1;
+      colA.forEach((r, i) => { if (String(r[0]).trim()) last = i + 1; });
+      const rows = DEFAULT_ARTICLES.filter(a => a[0] === 'Возврат');
+      ref.getRange(last + 1, 1, rows.length, rows[0].length).setValues(rows);
+    }
+    const ops = ss.getSheetByName(SHEET_OPS);
+    if (ops) ops.getRange('C2:C').setDataValidation(
+      SpreadsheetApp.newDataValidation().requireValueInList(TYPES, true).setAllowInvalid(false).build());
+    const rep = ss.getSheetByName(SHEET_REP);
+    if (rep && !String(rep.getRange('B11').getValue()).trim()) {
+      rep.getRange('B11').setValue('Возврат вложений (не расход)');
+      setF_(rep, 'C11', `=SUMIFS(${SHEET_OPS}!$F:$F,${SHEET_OPS}!$C:$C,"Возврат",${SHEET_OPS}!$B:$B,">="&$C$3,${SHEET_OPS}!$B:$B,"<="&$C$4,${SHEET_OPS}!$L:$L,"<>${STATUS_CANCELLED}")`);
+      rep.getRange('C11').setNumberFormat('#,##0').setFontWeight('bold');
+    }
+    SpreadsheetApp.flush();
+    props.setProperty('RETURN_SETUP', '1');
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 

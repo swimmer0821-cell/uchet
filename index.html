@@ -217,7 +217,7 @@ const T = {
     app:'Учёт SUB PROFI', langBtn:'Oʻzbekcha', back:'Назад', home:'Главная',
     whoAreYou:'Кто вы?', whoHint:'Нажмите на своё имя', enterPin:'Введите PIN', newPin:'Первый вход. Придумайте PIN из 4 цифр и запомните его', repeatPin:'Повторите PIN', pinMismatch:'PIN не совпал. Придумайте ещё раз.', hello:'Здравствуйте, {n}',
     expense:'Расход', expenseSub:'Потратили деньги', income:'Доход', incomeSub:'Деньги пришли',
-    reports:'Отчёты', reportsSub:'Сколько пришло и ушло', history:'История', historySub:'Последние записи', histSearch:'Поиск: название, магазин, № заказа, сумма', histClear:'Очистить поиск', histFound:'Найдено: {n}', histExp:'История расходов', histInc:'История доходов', histOpenSub:'что уже записано, по дням', dayExp:'расход', dayInc:'приход', balance:'Остаток', balanceSub:'Сколько денег в кассах', balTotal:'Всего денег', balOn:'по записям на {d}', balNote:'Считается по всем записям с начала учёта: начальный остаток + доходы и вложения − расходы, переводы перекладывают между кассами. Начальный остаток руководитель вписывает в таблицу: лист «Справочники», колонка L.', balNeg:'Минус: проверьте записи или начальный остаток.', payFrom:'Откуда взяли', payTo:'Куда положили',
+    reports:'Отчёты', reportsSub:'Сколько пришло и ушло', history:'История', historySub:'Последние записи', histSearch:'Поиск: название, магазин, № заказа, сумма', histClear:'Очистить поиск', histFound:'Найдено: {n}', histExp:'История расходов', histInc:'История доходов', histOpenSub:'что уже записано, по дням', dayExp:'расход', dayInc:'приход', balance:'Остаток', balanceSub:'Сколько денег в кассах', balTotal:'Всего денег', balOn:'по записям на {d}', balNote:'Считается по всем записям с начала учёта: начальный остаток + доходы и вложения − расходы и возвраты вложений, переводы перекладывают между кассами. Начальный остаток руководитель вписывает в таблицу: лист «Справочники», колонка L.', balNeg:'Минус: проверьте записи или начальный остаток.', payFrom:'Откуда взяли', payTo:'Куда положили',
     logout:'Сменить пользователя',
     whatPaid:'На что потратили?', fromWhere:'Что пришло?', clarify:'Уточните', other:'Другое', otherSub:'Все статьи',
     groupInc:'Доходы', groupInv:'Вложения и займы — не доход', groupTr:'Перевод между своими — не расход',
@@ -237,7 +237,7 @@ const T = {
     notCounted:'не входят в доходы и расходы', ops:'Записей за период: {n}',
     prev:'Прошлый период', nowCol:'Сейчас', beforeCol:'Было', chCol:'Изменение', grew:'выросло', fell:'упало', same:'без изменений', newCat:'новое',
     period:'Период: {a} — {b}', comparedWith:'Сравнение с {a} — {b}', noData:'За этот период записей нет',
-    T_Расход:'Расход', T_Доход:'Доход', T_Вложение:'Вложение', T_Перевод:'Перевод',
+    T_Расход:'Расход', T_Доход:'Доход', T_Вложение:'Вложение', T_Перевод:'Перевод', T_Возврат:'Возврат вложений', groupRet:'Возврат вложений и займов — не расход', retT:'Возврат вложений', retSub:'АЛ, займы — не расход',
     ERR_NET:'Нет связи с интернетом или сервер не ответил. Проверьте интернет и нажмите «Повторить».',
     ERR_PIN:'Неверный PIN. Попробуйте ещё раз.', ERR_LOCKED:'Слишком много неверных PIN. Вход закрыт на 10 минут.', ERR_PAY_TO:'Выберите, куда положили деньги — другую кассу.', ERR_NO_PIN:'PIN не задан. Попросите руководителя вписать вам временный PIN в лист «Справочники». При входе вы сразу смените его на свой.', ERR_PIN_EXISTS:'PIN уже задан. Введите его.', ERR_PIN_FORMAT:'Новый PIN — это 6 цифр.', ERR_PIN_SAME:'Новый PIN должен отличаться от старого.', ERR_NEW_PIN:'Нужно задать новый PIN.', newPin6:'Придумайте новый PIN из 6 цифр', newPinWhy:'Для защиты старый PIN больше не действует. Придумайте новый и запомните его.', repeatNew:'Повторите новый PIN', loginBtn:'Войти', ERR_USER:'Пользователь не найден. Выберите себя заново.',
     ERR_ROLE:'Это может делать только руководитель.', ERR_AMOUNT:'Сумма должна быть больше нуля.',
@@ -252,7 +252,7 @@ const T = {
     app:'SUB PROFI hisobi', langBtn:'Русский', back:'Orqaga', home:'Bosh sahifa',
     whoAreYou:'Siz kimsiz?', whoHint:'Ismingizni bosing', enterPin:'PIN kodni kiriting', newPin:'Birinchi kirish. 4 raqamli PIN oʻylab toping va eslab qoling', repeatPin:'PINni takrorlang', pinMismatch:'PIN mos kelmadi. Qaytadan oʻylab toping.', hello:'Assalomu alaykum, {n}',
     expense:'Xarajat', expenseSub:'Pul sarflandi', income:'Daromad', incomeSub:'Pul keldi',
-    reports:'Hisobotlar', reportsSub:'Qancha keldi va ketdi', history:'Tarix', historySub:'Oxirgi yozuvlar', histSearch:'Qidirish: nomi, doʻkon, buyurtma №, summa', histClear:'Qidiruvni tozalash', histFound:'Topildi: {n}', histExp:'Xarajatlar tarixi', histInc:'Daromadlar tarixi', histOpenSub:'yozilganlar, kunlar boʻyicha', dayExp:'xarajat', dayInc:'kirim', balance:'Qoldiq', balanceSub:'Kassalarda qancha pul bor', balTotal:'Jami pul', balOn:'{d} holatiga yozuvlar boʻyicha', balNote:'Hisob boshidan barcha yozuvlar boʻyicha: boshlangʻich qoldiq + daromad va investitsiyalar − xarajatlar, oʻtkazmalar kassalar orasida koʻchiradi. Boshlangʻich qoldiqni rahbar jadvalga yozadi: «Справочники» varagʻi, L ustun.', balNeg:'Minus: yozuvlarni yoki boshlangʻich qoldiqni tekshiring.', payFrom:'Qayerdan olindi', payTo:'Qayerga qoʻyildi',
+    reports:'Hisobotlar', reportsSub:'Qancha keldi va ketdi', history:'Tarix', historySub:'Oxirgi yozuvlar', histSearch:'Qidirish: nomi, doʻkon, buyurtma №, summa', histClear:'Qidiruvni tozalash', histFound:'Topildi: {n}', histExp:'Xarajatlar tarixi', histInc:'Daromadlar tarixi', histOpenSub:'yozilganlar, kunlar boʻyicha', dayExp:'xarajat', dayInc:'kirim', balance:'Qoldiq', balanceSub:'Kassalarda qancha pul bor', balTotal:'Jami pul', balOn:'{d} holatiga yozuvlar boʻyicha', balNote:'Hisob boshidan barcha yozuvlar boʻyicha: boshlangʻich qoldiq + daromad va investitsiyalar − xarajatlar va investitsiya qaytarish, oʻtkazmalar kassalar orasida koʻchiradi. Boshlangʻich qoldiqni rahbar jadvalga yozadi: «Справочники» varagʻi, L ustun.', balNeg:'Minus: yozuvlarni yoki boshlangʻich qoldiqni tekshiring.', payFrom:'Qayerdan olindi', payTo:'Qayerga qoʻyildi',
     logout:'Foydalanuvchini almashtirish',
     whatPaid:'Nimaga sarfladingiz?', fromWhere:'Nima keldi?', clarify:'Aniqlang', other:'Boshqa', otherSub:'Barcha moddalar',
     groupInc:'Daromadlar', groupInv:'Investitsiya va qarzlar — daromad emas', groupTr:'Oʻz hisoblar oʻrtasida — xarajat emas',
@@ -272,7 +272,7 @@ const T = {
     notCounted:'daromad va xarajatga kirmaydi', ops:'Davrdagi yozuvlar: {n}',
     prev:'Oldingi davr', nowCol:'Hozir', beforeCol:'Oldin', chCol:'Oʻzgarish', grew:'oshdi', fell:'kamaydi', same:'oʻzgarmadi', newCat:'yangi',
     period:'Davr: {a} — {b}', comparedWith:'Taqqoslash: {a} — {b}', noData:'Bu davrda yozuvlar yoʻq',
-    T_Расход:'Xarajat', T_Доход:'Daromad', T_Вложение:'Investitsiya', T_Перевод:'Oʻtkazma',
+    T_Расход:'Xarajat', T_Доход:'Daromad', T_Вложение:'Investitsiya', T_Перевод:'Oʻtkazma', T_Возврат:'Investitsiyani qaytarish', groupRet:'Investitsiya va qarzlarni qaytarish — xarajat emas', retT:'Investitsiyani qaytarish', retSub:'AL, qarzlar — xarajat emas',
     ERR_NET:'Internet yoʻq yoki server javob bermadi. Internetni tekshiring va «Qaytadan» ni bosing.',
     ERR_PIN:'PIN notoʻgʻri. Qaytadan urinib koʻring.', ERR_LOCKED:'Notoʻgʻri PIN juda koʻp. Kirish 10 daqiqaga yopildi.', ERR_PAY_TO:'Pul qayerga qoʻyilganini tanlang — boshqa kassani.', ERR_NO_PIN:'PIN yoʻq. Rahbardan «Справочники» varagʻiga vaqtinchalik PIN yozib qoʻyishini soʻrang. Kirishda uni darhol oʻzingiznikiga almashtirasiz.', ERR_PIN_EXISTS:'PIN allaqachon bor. Uni kiriting.', ERR_PIN_FORMAT:'Yangi PIN — 6 ta raqam.', ERR_PIN_SAME:'Yangi PIN eskisidan farq qilishi kerak.', ERR_NEW_PIN:'Yangi PIN oʻrnatish kerak.', newPin6:'Yangi 6 xonali PIN oʻylab toping', newPinWhy:'Xavfsizlik uchun eski PIN endi ishlamaydi. Yangisini oʻylab toping va eslab qoling.', repeatNew:'Yangi PINni takrorlang', loginBtn:'Kirish', ERR_USER:'Foydalanuvchi topilmadi. Oʻzingizni qaytadan tanlang.',
     ERR_ROLE:'Buni faqat rahbar qila oladi.', ERR_AMOUNT:'Summa noldan katta boʻlishi kerak.',
@@ -508,7 +508,7 @@ function startDraft(mode){
 
 // Изменение существующей записи: открываем тот же экран суммы с заполненными полями
 function startEdit(o){
-  S.draft = { mode: o.type === 'Расход' ? 'exp' : 'inc', editId: o.id, oldSum: o.sum, type: o.type, cat: o.cat, sub: o.sub,
+  S.draft = { mode: o.type === 'Расход' || o.type === 'Возврат' ? 'exp' : 'inc', editId: o.id, oldSum: o.sum, type: o.type, cat: o.cat, sub: o.sub,
     digits: String(Math.round(o.sum)), date: o.date, pay: o.pay, payTo: o.payTo || '', party: o.party || '', comment: o.comment || '', otherDate: false,
     name: o.name || '', qty: o.qty === '' || o.qty == null ? '' : String(o.qty), unit: o.unit || 'кг',
     pickBack: showHistory };
@@ -519,7 +519,7 @@ function changeArticle(){
   const d = S.draft;
   if (!d.editId) return d.pickBack();
   if (d.type === 'Расход' && !isBoss()) return showCats('Расход', showAmount);
-  return d.type === 'Расход' ? showCats('Расход', showAmount) : showIncomeCats(showAmount);
+  return d.type === 'Расход' || d.type === 'Возврат' ? showCats('Расход', showAmount) : showIncomeCats(showAmount);
 }
 
 // Сотрудник сразу видит частые траты
@@ -533,9 +533,10 @@ function showQuick(){
     <div class="tiles t-exp">
       ${quick.map((a, i) => `<button class="tile" type="button" data-i="${i}">${esc(S.lang === 'uz' ? a.tileUz : a.tile)}<small>${esc(catName(a))}</small></button>`).join('')}
       <button class="tile more" type="button" id="qMore">${esc(t('other'))}<small>${esc(t('otherSub'))}</small></button>
-    </div>`, showHome);
+    </div>${retTiles()}`, showHome);
   $app.querySelectorAll('[data-i]').forEach(b => b.onclick = () => { const a = quick[+b.dataset.i]; pick(a, showQuick); });
   document.getElementById('qMore').onclick = () => showCats('Расход', showQuick);
+  bindRet(showQuick);
   bindHistOpen(showQuick);
 }
 
@@ -557,9 +558,22 @@ function showCats(type, backFn){
   screen(t('expense'), `
     ${backFn === showHome ? histOpenBtn('Расход') : ''}
     <h2>${esc(t('whatPaid'))}</h2>
-    <div class="tiles t-exp">${list.map((a, i) => `<button class="tile" type="button" data-i="${i}">${esc(catName(a))}</button>`).join('')}</div>`, backFn);
+    <div class="tiles t-exp">${list.map((a, i) => `<button class="tile" type="button" data-i="${i}">${esc(catName(a))}</button>`).join('')}</div>${type === 'Расход' ? retTiles() : ''}`, backFn);
   $app.querySelectorAll('[data-i]').forEach(b => b.onclick = () => showSubs(type, list[+b.dataset.i].cat, () => showCats(type, backFn)));
+  bindRet(() => showCats(type, backFn));
   bindHistOpen(() => showCats(type, backFn));
+}
+
+// Возврат вложений (с 24.11.2026): в разделе «Расход», все сотрудники; деньги уходят из кассы, но в расходы не входят
+function retTiles(){
+  const list = cats('Возврат');
+  if (!list.length || (S.draft && S.draft.editId)) return '';
+  return `<h3>${esc(t('groupRet'))}</h3><div class="tiles t-neu">${list.map((a, i) =>
+    `<button class="tile" type="button" data-ret="${i}">${esc(catName(a))}<small>${esc(t('retSub'))}</small></button>`).join('')}</div>`;
+}
+function bindRet(back){
+  const list = cats('Возврат');
+  $app.querySelectorAll('[data-ret]').forEach(b => b.onclick = () => showSubs('Возврат', list[+b.dataset.ret].cat, back));
 }
 
 // Руководитель: доходы, вложения, переводы — разными группами
@@ -723,7 +737,7 @@ function keepInputs(){
   const c = document.getElementById('cmt'), n = document.getElementById('nameInp'), q = document.getElementById('qtyInp');
   if (c) S.draft.comment = c.value; if (n) S.draft.name = n.value; if (q) S.draft.qty = q.value;
 }
-function payTitle(type){ return type === 'Расход' ? t('payExp') : type === 'Перевод' ? t('payFrom') : t('payInc'); }
+function payTitle(type){ return type === 'Расход' || type === 'Возврат' ? t('payExp') : type === 'Перевод' ? t('payFrom') : t('payInc'); }
 function needName(){ return S.draft && S.draft.type === 'Расход'; }
 function qtyNum(q){ const n = Number(String(q || '').replace(',', '.')); return isFinite(n) && n > 0 ? n : 0; }
 function unitLabel(ru){ const u = S.ref.units && S.ref.units.find(x => x.ru === ru); return u ? (S.lang === 'uz' ? u.uz : u.ru) : ru; }
@@ -819,7 +833,7 @@ async function showHistory(){
 function renderHistory(){
   rerender = renderHistory;
   const f = S.histFilter, boss = isBoss();
-  const types = boss ? ['Расход', 'Доход', 'Вложение', 'Перевод'] : ['Расход', 'Доход'];
+  const types = boss ? ['Расход', 'Доход', 'Вложение', 'Перевод', 'Возврат'] : ['Расход', 'Доход', 'Возврат'];
   const catList = cats(f.type || 'Расход').concat(f.type ? [] : cats('Доход'));
   const items = S.hist.items.slice().sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.created || 0) - (a.created || 0));
   const mins = (S.ref.cancelMinutes || 10) * 60000;
@@ -843,7 +857,7 @@ function renderHistory(){
         const left = Math.max(1, Math.ceil((mins - (S.hist.now - o.created)) / 60000));
         return head + `<div class="item ${c} ${o.cancelled ? 'off' : ''}">
           <div>${o.name ? `<b>${esc(o.name)}</b>${o.qty ? ` · <span class="num">${esc(String(o.qty).replace('.', ','))} ${esc(unitLabel(o.unit))}</span>` : ''}<br><span class="hint">${esc(catLabel(o.type, o.cat))} → ${esc(subLabel(o))}</span>` : `<b>${esc(catLabel(o.type, o.cat))}</b> → ${esc(subLabel(o))}`}</div>
-          <div class="s num c-${c}">${o.type === 'Расход' ? '−' : ''}${money(o.sum)}</div>
+          <div class="s num c-${c}">${o.type === 'Расход' || o.type === 'Возврат' ? '−' : ''}${money(o.sum)}</div>
           <div class="m">${esc(fmtDate(o.date))} · ${esc(payLabel(o.pay))}${o.type === 'Перевод' && o.payTo ? ' → ' + esc(payLabel(o.payTo)) : ''}${o.party ? ' · ' + esc(o.party) : ''} · ${esc(t('who'))}: ${esc(o.who)}${o.cancelled ? ' · <b>' + esc(t('cancelled')) + '</b>' : ''}</div>
           ${o.comment ? `<div class="m">${esc(o.comment)}</div>` : ''}
           ${o.edited ? `<div class="m">${esc(t('editedMark', { w: o.edited }))}</div>` : ''}
@@ -963,6 +977,7 @@ function reportBody(){
     <div class="side">
       <div><span>${esc(t('invT'))}</span><br><b class="num">${money(tot.invest)}</b> ${esc(t('sum'))}<br><small class="hint">${esc(t('notCounted'))}</small></div>
       <div><span>${esc(t('trT'))}</span><br><b class="num">${money(tot.transfer)}</b> ${esc(t('sum'))}<br><small class="hint">${esc(t('notCounted'))}</small></div>
+      ${tot.payback ? `<div><span>${esc(t('retT'))}</span><br><b class="num">${money(tot.payback)}</b> ${esc(t('sum'))}<br><small class="hint">${esc(t('notCounted'))}</small></div>` : ''}
     </div>`;
   if (tab === 'cats') return bars(t('expT'), d.expByCat, 'Расход', 'var(--exp)') + bars(t('incT'), d.incByCat, 'Доход', 'var(--inc)');
   if (tab === 'dyn') {
